@@ -4,6 +4,7 @@ import { Game } from './core/Game.js';
 import { Sound } from './core/Sound.js';
 import { CHARACTERS } from './data/characters.js';
 import { MOVES } from './data/moves.js';
+import { LEVELS } from './data/levels.js';
 import { buildModel } from './entities/models.js';
 
 // --- Renderer & camera -----------------------------------------------------
@@ -133,9 +134,17 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyM') $('mute').textContent = sound.toggleMute() ? '🔇 M' : '🔊 M';
 });
 
-function startGame(heroId) {
+let heroId = null;
+let levelIndex = 0;
+
+function startGame(id, level = 0) {
+  heroId = id;
+  levelIndex = level;
   resetScene();
-  game = new Game(scene, heroId, sound, { godMode });
+  game = new Game(scene, heroId, sound, { godMode, levelIndex });
+  $('level-name').textContent = LEVELS[levelIndex].name;
+  show('level-name', true);
+  setTimeout(() => game?.levelIndex === level && show('level-name', false), 2500);
   lastResult = null;
   sound.play('start');
   sound.playMusic('forest');
@@ -154,6 +163,7 @@ function backToSelect() {
   show('hud', false);
   show('help', false);
   show('boss', false);
+  show('level-name', false);
   showMessage(null);
 }
 
@@ -181,7 +191,9 @@ function updateHud() {
   } else if (!game.result) {
     sound.playMusic(boss?.alive ? 'boss' : 'forest');
   }
-  if (game.result === 'win') showMessage('STAGE CLEAR!', 'Press Enter to play again');
+  const hasNextLevel = levelIndex + 1 < LEVELS.length;
+  if (game.result === 'win' && hasNextLevel) showMessage('LEVEL CLEAR!', 'Press Enter for the next level');
+  if (game.result === 'win' && !hasNextLevel) showMessage('YOU WIN!', 'You beat every level! Press Enter to play again');
   if (game.result === 'lose') showMessage('GAME OVER', 'Press Enter to try again');
 }
 
@@ -195,7 +207,10 @@ function tick() {
   } else {
     game.update(dt, input);
     updateHud();
-    if (game.result && input.pressed('start')) backToSelect();
+    if (game.result && input.pressed('start')) {
+      if (game.result === 'win' && levelIndex + 1 < LEVELS.length) startGame(heroId, levelIndex + 1);
+      else backToSelect();
+    }
 
     const x = game.cameraX;
     camera.position.set(x, CAM_HEIGHT, CAM_DISTANCE);

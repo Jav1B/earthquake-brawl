@@ -22,9 +22,21 @@ _First version made up by Claude. Change anything!_ J = attack, K = special.
 - Alima: Hammer Smash (J, big hit), Sleep Arrow (K, enemy falls asleep)
 - Lutar: Axe Chop (J, very fast), Axe Spin (K, hits both sides)
 
-## Enemies
+## Levels
 
-_First version made up by Claude. Change anything!_ They climb out of the earthquake cracks.
+Each level has its own place, enemies and boss. Levels are played in order:
+beat the boss to go to the next level.
+
+**To add a level:** copy the "Level 2" block at the bottom, change the number,
+and fill it in. Enemies can come back in later levels: just list them again.
+
+---
+
+### Level 1: The Forest
+
+**Place:** A forest where the earthquake split the ground open. Bad guys climb out of glowing cracks.
+
+**Enemies:**
 - Crack Crawler: small purple creature with claws
 - Rock Brute: big slow rock monster that punches hard
 - House: a house with metal fists _(In game: slow and tough, heavy Metal Punch.)_
@@ -32,12 +44,21 @@ _First version made up by Claude. Change anything!_ They climb out of the earthq
 - Ningage: ninja hyper-agile with a sword. _(In game: dashing sword slash, hops away from your attacks.)_
 - Chimpanze: a big ape that spits ice. _(In game: Ape Slam up close, Ice Spit from far away. Ice makes you slow.)_
 
-## Bosses
+**Boss:** Robot that launches missiles and has a shield.
+- _In game: "Missile Robot". The shield blocks hits from the front and turns off every few seconds. The robot turns slowly, so you can sneak behind it!_
 
-1. Robot that launches missiles and has a shield.
-   - In the game: "Missile Robot". The shield blocks hits from the front and turns off every few seconds. The robot turns slowly, so you can sneak behind it!
+**How it plays:** 8 waves of enemies, then the boss. You heal a little after each wave.
 
-## Levels
+---
 
-1. Forest level
-   - 8 waves of enemies, ending with the Missile Robot. You heal a little after each wave.
+### Level 2: _name?_
+
+**Place:** _Where is it? What does it look like?_
+
+**Enemies:**
+- _Name: what it looks like and how it fights_
+- _..._
+
+**Boss:** _Name: what it looks like and its special attacks_
+
+**How it plays:** _Anything special about this level?_

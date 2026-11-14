@@ -14,6 +14,8 @@ export class Level {
     this.scene = world.scene;
     this.enemies = [];
     this.waveIndex = 0;
+    // The boss is the final wave, near the end of the level.
+    this.waves = def.boss ? [...def.waves, { x: def.length - 4, enemies: [def.boss] }] : def.waves;
     this.locked = false; // screen stops scrolling during a fight
 
     this.scene.background = new THREE.Color(def.skyColor);
@@ -90,7 +92,7 @@ export class Level {
   }
 
   update(player, cameraX, dt) {
-    const wave = this.def.waves[this.waveIndex];
+    const wave = this.waves[this.waveIndex];
     if (!this.locked && wave && player.pos.x >= wave.x) {
       this.spawnWave(wave, cameraX);
       this.locked = true;
@@ -132,7 +134,7 @@ export class Level {
   }
 
   get complete() {
-    return this.waveIndex >= this.def.waves.length;
+    return this.waveIndex >= this.waves.length;
   }
 
   get boss() {

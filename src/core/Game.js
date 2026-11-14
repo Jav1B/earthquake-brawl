@@ -7,10 +7,10 @@ import { LEVELS } from '../data/levels.js';
 
 const VIEW_HALF_WIDTH = 8; // how far the hero can walk from the screen center
 
-// One play-through: a hero, a level, enemies, projectiles and hit effects.
+// Playing one level: a hero, the level, enemies, projectiles and hit effects.
 export class Game {
   // `sound` is optional so the game can also run without audio (in tests).
-  constructor(scene, heroId, sound = null, { godMode = false } = {}) {
+  constructor(scene, heroId, sound = null, { godMode = false, levelIndex = 0 } = {}) {
     this.scene = scene;
     this.sound = sound;
     this.projectiles = [];
@@ -19,7 +19,8 @@ export class Game {
     this.result = null; // null while playing, then 'win' or 'lose'
     this.player = new Player(CHARACTERS[heroId], this);
     this.player.invincible = godMode;
-    this.level = new Level(LEVELS[0], this);
+    this.levelIndex = levelIndex;
+    this.level = new Level(LEVELS[levelIndex], this);
   }
 
   get enemies() {

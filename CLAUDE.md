@@ -10,8 +10,8 @@ Side-scrolling beat 'em up, made by a parent and their kid. Three.js + Vite, pla
 - God mode (G, on by default, saved in localStorage) sets `player.invincible`: hits land but no HP is lost.
 
 ## Architecture
-- **Data-driven.** Game content lives in `src/data/*.js` as plain objects: `characters`, `moves`, `enemies` (bosses have `boss: true`), `levels` (waves trigger by x position). Add content there before touching engine code.
-- `DESIGN.md` is the source of truth for the kid's ideas. Keep it in sync when adding content.
+- **Data-driven.** Game content lives in `src/data/*.js` as plain objects: `characters`, `moves`, `enemies` (bosses have `boss: true`), `levels` (played in order; each has `theme`, `waves` triggered by x position, and a `boss` that `Level` appends as the final wave). Add content there before touching engine code.
+- `DESIGN.md` is the source of truth for the kid's ideas. Keep it in sync when adding content. It's organized per level: each `### Level N` lists its place, enemies and boss. New levels go in `LEVELS`; enemies live in the shared `enemies.js` pool and can appear in any level. A new `theme` needs scenery in `Level.js` (unknown themes get bare ground).
 - Coordinates: **x** = scroll direction (left→right), **y** = up (jumping), **z** = depth lane (`LANE_MIN_Z..LANE_MAX_Z`).
 - `Fighter` (src/entities/Fighter.js) is the shared base: hp, jump, attack timing (startup/active/recovery), hit detection, knockback, status effects (burn, sleep), shields. `Player` adds input; `Enemy` adds AI (emerges from cracks; `turnDelay` makes slow turners).
 - `Projectile` handles anything a move with `projectile: {...}` shoots.

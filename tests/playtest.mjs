@@ -1,15 +1,16 @@
-// Automated playtest: a simple bot plays the level with every hero.
+// Automated playtest: a simple bot plays every level with every hero.
 // Catches crashes, broken numbers (NaN) and levels that can't be finished.
 // Run with: npm test
 import * as THREE from 'three';
 import { Game } from '../src/core/Game.js';
 import { CHARACTERS } from '../src/data/characters.js';
+import { LEVELS } from '../src/data/levels.js';
 
 const MAX_SECONDS = 240;
 let failed = false;
 
-for (const hero of Object.keys(CHARACTERS)) {
-  const game = new Game(new THREE.Scene(), hero);
+for (let levelIndex = 0; levelIndex < LEVELS.length; levelIndex++) for (const hero of Object.keys(CHARACTERS)) {
+  const game = new Game(new THREE.Scene(), hero, null, { levelIndex });
   const held = new Set();
   const pressed = new Set();
   const input = { isDown: (a) => held.has(a), pressed: (a) => pressed.has(a) };
@@ -50,7 +51,7 @@ for (const hero of Object.keys(CHARACTERS)) {
   const ok = game.result !== null;
   if (!ok) failed = true;
   console.log(
-    `${ok ? '✓' : '✗'} ${hero.padEnd(11)} ${game.result ?? 'stuck (timeout)'} after ${t.toFixed(0)}s, ` +
+    `${ok ? '✓' : '✗'} level ${levelIndex + 1} ${hero.padEnd(11)} ${game.result ?? 'stuck (timeout)'} after ${t.toFixed(0)}s, ` +
       `hp ${game.player.hp.toFixed(0)}/${game.player.def.maxHp}, reached wave ${game.level.waveIndex}`,
   );
 }
