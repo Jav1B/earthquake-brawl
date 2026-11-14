@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Fighter } from './Fighter.js';
 import { MOVES } from '../data/moves.js';
 
@@ -12,6 +13,19 @@ export class Enemy extends Fighter {
     this.melee = def.attacks.filter((id) => !MOVES[id].projectile);
     this.ranged = def.attacks.filter((id) => MOVES[id].projectile);
     this.meleeRange = Math.max(1, ...this.melee.map((id) => MOVES[id].range));
+    // Bosses get the big bar at the top of the screen instead.
+    if (!def.boss) this.hpBar = makeHpBar(def.size.h + 0.45);
+    if (this.hpBar) this.group.add(this.hpBar);
+  }
+
+  syncMesh() {
+    super.syncMesh();
+    if (!this.hpBar) return;
+    const ratio = this.hp / this.def.maxHp;
+    const fill = this.hpBar.userData.fill;
+    fill.scale.x = Math.max(0.001, ratio);
+    fill.material.color.setHex(ratio > 0.5 ? 0x33dd33 : ratio > 0.25 ? 0xffcc00 : 0xff3333);
+    this.hpBar.visible = this.hittable;
   }
 
   emergeAt(x, z) {
@@ -70,6 +84,30 @@ export class Enemy extends Fighter {
     this.move(mx, mz, dt);
     this.facing = Math.sign(dx) || this.facing;
   }
+}
+
+// Small health bar that floats above an enemy's head.
+const BAR_WIDTH = 0.9;
+function makeHpBar(height) {
+  const bar = new THREE.Group();
+  const layer = (w, h, color, order) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color, depthTest: false }),
+    );
+    m.renderOrder = order; // always draw on top of the scenery
+    return m;
+  };
+  const border = layer(BAR_WIDTH + 0.08, 0.18, 0x000000, 10);
+  const empty = layer(BAR_WIDTH, 0.1, 0x551111, 11);
+  // Shift the fill so it shrinks from the right, not from the middle
+  const fill = layer(BAR_WIDTH, 0.1, 0x33dd33, 12);
+  fill.geometry.translate(BAR_WIDTH / 2, 0, 0);
+  fill.position.x = -BAR_WIDTH / 2;
+  bar.add(border, empty, fill);
+  bar.position.y = height;
+  bar.userData.fill = fill;
+  return bar;
 }
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];

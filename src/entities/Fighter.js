@@ -15,6 +15,7 @@ export class Fighter {
     this.def = def;
     this.world = world;
     this.team = 'player';
+    this.invincible = false; // god mode: hits still land, but no HP is lost
     this.hp = def.maxHp;
     this.pos = new THREE.Vector3();
     this.velY = 0;
@@ -101,7 +102,7 @@ export class Fighter {
       this.shieldFlash = 0.15;
       return false;
     }
-    this.hp = Math.max(0, this.hp - move.damage);
+    if (!this.invincible) this.hp = Math.max(0, this.hp - move.damage);
     this.knockVel = Math.sign(this.pos.x - fromX || 1) * (move.knockback ?? 0) * 6 * (this.def.boss ? 0.3 : 1);
     if (move.effect === 'burn') this.burnTimer = BURN_TIME;
     this.attack = null;
@@ -140,7 +141,7 @@ export class Fighter {
     // Burning: damage over time
     if (this.burnTimer > 0 && this.alive) {
       this.burnTimer -= dt;
-      this.hp = Math.max(0, this.hp - BURN_DAMAGE_PER_SEC * dt);
+      if (!this.invincible) this.hp = Math.max(0, this.hp - BURN_DAMAGE_PER_SEC * dt);
       if (this.hp <= 0) this.die();
     }
 

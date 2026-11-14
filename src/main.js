@@ -77,6 +77,24 @@ const sound = new Sound();
 let game = null;
 let lastResult = null;
 
+// God mode: the hero can't lose health. On by default, remembered between visits.
+let godMode = true;
+try {
+  godMode = localStorage.getItem('godMode') !== 'off';
+} catch {}
+function setGodMode(on) {
+  godMode = on;
+  try {
+    localStorage.setItem('godMode', on ? 'on' : 'off');
+  } catch {}
+  if (game) game.player.invincible = on;
+  $('god').textContent = on ? '⭐ GOD MODE (G)' : '';
+  $('god-select').textContent = `God mode: ${on ? 'ON ⭐' : 'OFF'} (press G)`;
+}
+addEventListener('keydown', (e) => {
+  if (e.code === 'KeyG') setGodMode(!godMode);
+});
+
 // Browsers only allow sound after the player interacts with the page.
 addEventListener('keydown', () => sound.unlock());
 addEventListener('pointerdown', () => sound.unlock());
@@ -86,7 +104,7 @@ addEventListener('keydown', (e) => {
 
 function startGame(heroId) {
   resetScene();
-  game = new Game(scene, heroId, sound);
+  game = new Game(scene, heroId, sound, { godMode });
   lastResult = null;
   sound.play('start');
   sound.playMusic('forest');
@@ -162,6 +180,7 @@ function tick() {
 
 resetScene();
 buildSelectScreen();
+setGodMode(godMode);
 sound.playMusic('forest');
 // Handy for testing: ?hero=lutar skips the select screen.
 const heroParam = new URLSearchParams(location.search).get('hero');

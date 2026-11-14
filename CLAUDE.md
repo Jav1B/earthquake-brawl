@@ -7,6 +7,7 @@ Side-scrolling beat 'em up, made by a parent and their kid. Three.js + Vite, pla
 - `npm run build`: production build into `dist/`
 - `npm test`: headless bot plays the level with every hero (no browser needed). Run after gameplay or data changes; every hero should still win.
 - `?hero=<id>` URL param skips the select screen.
+- God mode (G, on by default, saved in localStorage) sets `player.invincible`: hits land but no HP is lost.
 
 ## Architecture
 - **Data-driven.** Game content lives in `src/data/*.js` as plain objects: `characters`, `moves`, `enemies` (bosses have `boss: true`), `levels` (waves trigger by x position). Add content there before touching engine code.

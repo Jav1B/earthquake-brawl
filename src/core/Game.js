@@ -10,7 +10,7 @@ const VIEW_HALF_WIDTH = 8; // how far the hero can walk from the screen center
 // One play-through: a hero, a level, enemies, projectiles and hit effects.
 export class Game {
   // `sound` is optional so the game can also run without audio (in tests).
-  constructor(scene, heroId, sound = null) {
+  constructor(scene, heroId, sound = null, { godMode = false } = {}) {
     this.scene = scene;
     this.sound = sound;
     this.projectiles = [];
@@ -18,6 +18,7 @@ export class Game {
     this.cameraX = 0;
     this.result = null; // null while playing, then 'win' or 'lose'
     this.player = new Player(CHARACTERS[heroId], this);
+    this.player.invincible = godMode;
     this.level = new Level(LEVELS[0], this);
   }
 

@@ -23,6 +23,8 @@ Add `?hero=lutar` (or any hero id) to the URL to skip the select screen.
 | Special | K |
 | Jump   | Space |
 | Choose hero / start | ← → or 1–4, Enter |
+| God mode (can't lose health) | G |
+| Mute | M |
 
 ## Where things live
 
