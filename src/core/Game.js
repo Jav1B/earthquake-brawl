@@ -39,6 +39,7 @@ export class Game {
   // Hit spark + sound. `landed` is false when a shield blocked it.
   hitFeedback(target, landed) {
     this.spark(target, !landed);
+    if (target.isProp) return; // barrels make their own sound
     this.sfx(!landed ? 'block' : !target.alive ? 'ko' : target.team === 'player' ? 'hurt' : 'hit');
   }
 
@@ -69,20 +70,33 @@ export class Game {
     if (p.alive && !this.result) p.handleInput(input, dt);
     this.level.update(p, this.cameraX, dt);
 
+    // Who is standing on spilled soy sauce?
+    for (const f of [p, ...this.enemies]) {
+      f.onSoy = f.alive && f.state !== 'emerge' && f.pos.y < 0.05 && this.level.isOnSoy(f.pos);
+    }
+
     p.update(dt);
     for (const e of this.enemies) e.update(dt);
 
-    this.meleeHits(p, this.enemies);
+    // The hero can also break barrels
+    const heroTargets = [...this.enemies, ...this.level.barrels];
+    this.meleeHits(p, heroTargets);
     for (const e of this.enemies) this.meleeHits(e, [p]);
 
     for (const proj of this.projectiles) {
       proj.update(dt);
-      const targets = proj.team === 'player' ? this.enemies : [p];
+      const targets = proj.team === 'player' ? heroTargets : [p];
       for (const t of targets) {
-        if (!proj.dead && proj.hits(t)) {
-          this.hitFeedback(t, t.takeHit(proj.move, proj.pos.x - Math.sign(proj.vel.x)));
+        if (proj.dead || !proj.hits(t)) continue;
+        // Some enemies (MiniSushi) swallow the hero's projectiles
+        if (proj.team === 'player' && t.def.absorbsProjectiles) {
           proj.dead = true;
+          t.pulse = 0.3;
+          this.sfx('gulp');
+          continue;
         }
+        this.hitFeedback(t, t.takeHit(proj.move, proj.pos.x - Math.sign(proj.vel.x)));
+        proj.onHit();
       }
     }
     this.projectiles = this.projectiles.filter((proj) => (proj.dead ? (proj.dispose(), false) : true));
@@ -97,6 +111,12 @@ export class Game {
     // Camera follows the hero but never goes backwards, and stops during fights.
     if (!this.level.locked) this.cameraX = Math.max(this.cameraX, Math.min(p.pos.x, this.level.def.length));
     p.pos.x = THREE.MathUtils.clamp(p.pos.x, this.cameraX - VIEW_HALF_WIDTH, this.cameraX + VIEW_HALF_WIDTH);
+    // Enemies can't run away off-screen during a fight
+    for (const e of this.enemies) {
+      if (e.state !== 'emerge' && e.alive) {
+        e.pos.x = THREE.MathUtils.clamp(e.pos.x, this.cameraX - VIEW_HALF_WIDTH - 0.5, this.cameraX + VIEW_HALF_WIDTH + 0.5);
+      }
+    }
     p.syncMesh();
 
     if (!this.result) {

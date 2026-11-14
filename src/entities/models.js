@@ -53,7 +53,8 @@ function part(geo, color, o = {}) {
 
 function group(...children) {
   const g = new THREE.Group();
-  g.add(...children.flat());
+  const parts = children.flat();
+  if (parts.length) g.add(...parts);
   return g;
 }
 function pivot(x, y, z, ...children) {
@@ -207,10 +208,12 @@ const BUILDERS = {
     const GREEN = 0x27ae60, RED = 0xc0392b, BROWN = 0x5d3a1a, STEEL = 0xbdc3c7;
     const boot = () => part(G.box(0.22, 0.1, 0.15), BROWN, { x: 0.05, y: 0.03 });
     const legs = [limb(0, 0.38, 0.1, 0.08, 0.2, 0x2c3e50, 0, boot()), limb(0, 0.38, -0.1, 0.08, 0.2, 0x2c3e50, Math.PI, boot())];
+    // Big double-bladed axes (a gnome needs reach!)
     const axe = () => held(-Math.PI / 2,
-      part(G.cyl(0.03, 0.03, 0.6, 6), BROWN, { y: 0.25 }),
-      part(G.blade(0.16), STEEL, { y: 0.48, x: 0.02, rz: -Math.PI / 2 }),
-      part(G.blade(0.12), STEEL, { y: 0.48, x: -0.02, rz: Math.PI / 2 }),
+      part(G.cyl(0.035, 0.035, 0.9, 6), BROWN, { y: 0.38 }),
+      part(G.blade(0.26), STEEL, { y: 0.72, x: 0.03, rz: -Math.PI / 2 }),
+      part(G.blade(0.2), STEEL, { y: 0.72, x: -0.03, rz: Math.PI / 2 }),
+      part(G.cone(0.05, 0.15, 6), STEEL, { y: 0.9 }),
     );
     const frontArm = pose(limb(0, 0.68, 0.27, 0.07, 0.18, GREEN, 0, part(G.ball(0.07), SKIN), axe()), 0.5, 2.3, 0.5);
     const backArm = pose(limb(0, 0.68, -0.27, 0.07, 0.18, GREEN, Math.PI, part(G.ball(0.07), SKIN), axe()), 0.3, 2.0, 0.3);
@@ -386,6 +389,91 @@ const BUILDERS = {
     return { root, weapons: [slamArm, backArm], legs, arms: [] };
   },
 
+  sushi() {
+    const RICE = 0xf7f5ee, SALMON = 0xff8a5c, STRIPE = 0xffe2d4;
+    const legs = [limb(0, 0.16, 0.14, 0.05, 0.05, RICE, 0), limb(0, 0.16, -0.14, 0.05, 0.05, RICE, Math.PI)];
+    // The whole body leans back and then bumps forward when attacking
+    const body = pose(pivot(0, 0.05, 0,
+      part(G.cap(0.2, 0.42), RICE, { y: 0.27, rz: Math.PI / 2, s: [1, 1, 1.25] }),
+      part(G.box(0.85, 0.12, 0.5), SALMON, { y: 0.5, rz: -0.06 }),
+      [-0.25, -0.05, 0.15].map((x) => part(G.box(0.05, 0.13, 0.52), STRIPE, { x, y: 0.51, ry: 0.5 })),
+      part(G.ball(0.05), BLACK, { x: 0.38, y: 0.33, z: 0.11 }),
+      part(G.ball(0.05), BLACK, { x: 0.38, y: 0.33, z: -0.11 }),
+      part(G.box(0.03, 0.03, 0.12), BLACK, { x: 0.4, y: 0.42, z: 0.11, rx: 0.4 }),
+      part(G.box(0.03, 0.03, 0.12), BLACK, { x: 0.4, y: 0.42, z: -0.11, rx: -0.4 }),
+      part(G.ball(0.04), 0xcc3333, { x: 0.41, y: 0.22, s: [0.6, 0.6, 1.4] }),
+    ), 0, 0.35, -0.45);
+    const root = group(legs, body);
+    return { root, weapons: [body], legs, arms: [] };
+  },
+
+  waiter() {
+    const SHIRT = 0xfafafa, VEST = 0x1c1c1c, PANTS = 0x2b2b2b, TRAY = 0xc8ccd0, HAIR = 0x111111;
+    const shoe = () => part(G.box(0.28, 0.09, 0.16), BLACK, { x: 0.05, y: 0.03 });
+    const legs = [limb(0, 0.92, 0.13, 0.1, 0.65, PANTS, 0, shoe()), limb(0, 0.92, -0.13, 0.1, 0.65, PANTS, Math.PI, shoe())];
+    const tray = held(-1.4, part(G.cyl(0.3, 0.3, 0.03, 20), TRAY, { x: 0.15 }), part(G.torus(0.3, 0.02), TRAY, { x: 0.15, rx: Math.PI / 2 }));
+    const trayArm = pose(limb(0, 1.48, 0.3, 0.08, 0.42, SHIRT, 0, part(G.ball(0.08), SKIN), tray), 1.4, -0.6, 1.7);
+    const backArm = limb(0, 1.48, -0.3, 0.08, 0.42, SHIRT, Math.PI, part(G.ball(0.08), SKIN),
+      part(G.box(0.12, 0.3, 0.18), 0xffffff, { y: 0.3 }));
+    const root = group(
+      legs,
+      part(G.box(0.42, 0.62, 0.42), VEST, { y: 1.23 }),
+      part(G.box(0.05, 0.6, 0.16), SHIRT, { x: 0.2, y: 1.24 }),
+      part(G.cone(0.06, 0.12, 4), 0xc0392b, { x: 0.23, y: 1.5, z: 0.06, rx: Math.PI / 2 }),
+      part(G.cone(0.06, 0.12, 4), 0xc0392b, { x: 0.23, y: 1.5, z: -0.06, rx: -Math.PI / 2 }),
+      part(G.box(0.06, 0.4, 0.44), 0xffffff, { x: 0.12, y: 0.75 }),
+      part(G.ball(0.2), SKIN, { y: 1.74 }),
+      part(G.ball(0.03), BLACK, { x: 0.18, y: 1.77, z: 0.07 }),
+      part(G.ball(0.03), BLACK, { x: 0.18, y: 1.77, z: -0.07 }),
+      part(G.box(0.04, 0.04, 0.18), HAIR, { x: 0.2, y: 1.66 }),
+      part(G.dome(0.21), HAIR, { y: 1.78, s: [1, 0.7, 1] }),
+      backArm,
+      trayArm,
+    );
+    return { root, weapons: [trayArm], legs, arms: [backArm] };
+  },
+
+  sensei() {
+    const KIMONO = 0x1f4e79, HAKAMA = 0x222831, WHITE = 0xf5f5f5, STEEL = 0xd0d6da, RICE = 0xf7f5ee, SALMON = 0xff8a5c;
+    const legs = [limb(0, 0.95, 0.15, 0.12, 0.65, HAKAMA, 0, part(G.box(0.3, 0.08, 0.17), 0x6b3e1f, { x: 0.06, y: 0.02 })),
+      limb(0, 0.95, -0.15, 0.12, 0.65, HAKAMA, Math.PI, part(G.box(0.3, 0.08, 0.17), 0x6b3e1f, { x: 0.06, y: 0.02 }))];
+    const sleeve = () => part(G.cyl(0.1, 0.22, 0.45, 10), KIMONO, { y: -0.3 });
+    const chopsticks = held(-Math.PI / 2,
+      part(G.cyl(0.02, 0.012, 1.0, 6), STEEL, { y: 0.4, z: 0.03 }),
+      part(G.cyl(0.02, 0.012, 1.0, 6), STEEL, { y: 0.4, z: -0.03, rx: 0.06 }),
+    );
+    const stickArm = pose(pivot(0, 1.55, 0.36, sleeve(), pivot(0, -0.58, 0, part(G.ball(0.09), SKIN), chopsticks)), 0.5, 2.3, 0.9);
+    const energyArm = pivot(0, 1.55, -0.36, sleeve(), pivot(0, -0.58, 0, part(G.ball(0.09), SKIN),
+      part(G.ball(0.12), 0xffdd00, { y: -0.1, glow: true, flicker: true })));
+    energyArm.userData.phase = Math.PI;
+    // The sushi logo on his kimono (on both sides)
+    const logo = (z) => group(
+      part(G.cap(0.05, 0.1), RICE, { x: 0.02, y: 1.38, z, rz: Math.PI / 2 }),
+      part(G.box(0.22, 0.04, 0.03), SALMON, { x: 0.02, y: 1.44, z }),
+    );
+    const root = group(
+      legs,
+      part(G.cyl(0.3, 0.45, 0.55, 12), HAKAMA, { y: 0.85 }),
+      part(G.box(0.5, 0.65, 0.52), KIMONO, { y: 1.35 }),
+      part(G.box(0.03, 0.55, 0.08), WHITE, { x: 0.26, y: 1.42, z: 0.06, rx: 0.5 }),
+      part(G.box(0.03, 0.55, 0.08), WHITE, { x: 0.26, y: 1.42, z: -0.06, rx: -0.5 }),
+      part(G.box(0.54, 0.12, 0.56), BLACK, { y: 1.08 }),
+      logo(0.27),
+      logo(-0.27),
+      part(G.ball(0.23), SKIN, { y: 1.88 }),
+      part(G.box(0.03, 0.03, 0.1), WHITE, { x: 0.21, y: 1.95, z: 0.08 }),
+      part(G.box(0.03, 0.03, 0.1), WHITE, { x: 0.21, y: 1.95, z: -0.08 }),
+      part(G.ball(0.03), BLACK, { x: 0.21, y: 1.9, z: 0.08 }),
+      part(G.ball(0.03), BLACK, { x: 0.21, y: 1.9, z: -0.08 }),
+      part(G.cone(0.03, 0.3, 6), WHITE, { x: 0.23, y: 1.72, z: 0.08, rx: Math.PI, rz: -0.3 }),
+      part(G.cone(0.03, 0.3, 6), WHITE, { x: 0.23, y: 1.72, z: -0.08, rx: Math.PI, rz: -0.3 }),
+      part(G.cone(0.08, 0.28, 8), WHITE, { x: 0.2, y: 1.6, rx: Math.PI }),
+      energyArm,
+      stickArm,
+    );
+    return { root, weapons: [stickArm], legs, arms: [energyArm] };
+  },
+
   robot() {
     const BODY = 0x8a9199, DARK = 0x4a5056, RED = 0xff2222, CORE = 0x33ccff;
     const foot = () => part(G.box(0.55, 0.15, 0.4), DARK, { x: 0.08, y: 0.05 });
@@ -441,4 +529,78 @@ export function buildModel(name, def) {
   }
   addOutlines(model.root);
   return model;
+}
+
+// --- Scenery props ---------------------------------------------------------------
+const PROPS = {
+  soyBarrel() {
+    const WOOD = 0x8b5a2b, BAND = 0x3d2b1f;
+    return group(
+      part(G.cyl(0.33, 0.33, 0.85, 14), WOOD, { y: 0.43 }),
+      part(G.cyl(0.36, 0.36, 0.07, 14), BAND, { y: 0.15 }),
+      part(G.cyl(0.36, 0.36, 0.07, 14), BAND, { y: 0.71 }),
+      part(G.cyl(0.3, 0.3, 0.03, 14), 0x2a1405, { y: 0.87 }),
+      part(G.box(0.3, 0.35, 0.02), 0xf5f0e0, { y: 0.43, z: 0.33 }),
+      part(G.box(0.06, 0.22, 0.03), 0x1a0d05, { y: 0.43, z: 0.34 }),
+      part(G.box(0.16, 0.05, 0.03), 0x1a0d05, { y: 0.5, z: 0.34 }),
+    );
+  },
+
+  restaurant() {
+    const WALL = 0xf3e6c8, WOOD = 0x5d3a1a, ROOF = 0x34495e;
+    const lantern = (x, z) => group(
+      part(G.ball(0.2), 0xe74c3c, { x, y: 1.9, z, s: [1, 1.3, 1], glow: true }),
+      part(G.cyl(0.08, 0.08, 0.05, 8), BLACK, { x, y: 2.17, z }),
+    );
+    const noren = [-0.35, 0, 0.35].map((dx) => part(G.box(0.02, 0.5, 0.32), 0x1f4e79, { x: dx * 0.1, y: 1.65, z: 1.01 + dx * 0.0, ry: Math.PI / 2, s: [1, 1, 1] }));
+    noren.forEach((n, i) => (n.position.x = -0.35 + i * 0.35));
+    return group(
+      part(G.box(3, 2.1, 2), WALL, { y: 1.05 }),
+      [-1.45, 1.45].map((x) => part(G.box(0.15, 2.1, 0.15), WOOD, { x, y: 1.05, z: 1 })),
+      part(G.box(3.1, 0.15, 0.15), WOOD, { y: 2.05, z: 1 }),
+      part(G.box(1, 1.3, 0.05), 0x3d2b1f, { y: 0.65, z: 1.01 }),
+      noren,
+      part(G.cone(2.5, 1.2, 4), ROOF, { y: 2.65, ry: Math.PI / 4, s: [1.25, 1, 0.9] }),
+      part(G.box(2.2, 0.12, 0.2), ROOF, { y: 3.25 }),
+      part(G.box(1.2, 0.45, 0.06), WOOD, { y: 2.45, z: 1.1 }),
+      part(G.cap(0.08, 0.16), 0xf7f5ee, { y: 2.42, z: 1.15, rz: Math.PI / 2 }),
+      part(G.box(0.36, 0.06, 0.06), 0xff8a5c, { y: 2.53, z: 1.15 }),
+      lantern(-1.45, 1.15),
+      lantern(1.45, 1.15),
+    );
+  },
+
+  sakura() {
+    const PINK = [0xffb7c5, 0xff9eb5, 0xffc8d4];
+    return group(
+      part(G.cyl(0.12, 0.2, 1.6, 7), 0x5d3a1a, { y: 0.8 }),
+      part(G.cyl(0.06, 0.08, 0.8, 6), 0x5d3a1a, { x: 0.3, y: 1.7, rz: -0.6 }),
+      [[0, 2.1, 0, 0.75], [0.6, 1.95, 0.2, 0.55], [-0.5, 1.9, -0.1, 0.55], [0.1, 2.5, -0.2, 0.5]].map(
+        ([x, y, z, r], i) => part(G.ball(r), PINK[i % 3], { x, y, z }),
+      ),
+    );
+  },
+
+  mountain() {
+    return group(
+      part(G.cone(9, 14, 7), 0x6b7d5c, { y: 7 }),
+      part(G.cone(3.3, 5.2, 7), 0xffffff, { y: 11.4 }),
+    );
+  },
+
+  torii() {
+    const RED = 0xd03a2b;
+    return group(
+      part(G.cyl(0.15, 0.18, 3, 10), RED, { x: -1.2, y: 1.5 }),
+      part(G.cyl(0.15, 0.18, 3, 10), RED, { x: 1.2, y: 1.5 }),
+      part(G.box(3.4, 0.2, 0.3), BLACK, { y: 3.1 }),
+      part(G.box(3.0, 0.18, 0.25), RED, { y: 2.6 }),
+    );
+  },
+};
+
+export function buildProp(name) {
+  const root = PROPS[name]();
+  addOutlines(root);
+  return root;
 }

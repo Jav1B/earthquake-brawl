@@ -7,6 +7,8 @@ const BURN_DAMAGE_PER_SEC = 3;
 const BURN_TIME = 3;
 const FREEZE_TIME = 2.5;
 const FREEZE_SLOWDOWN = 0.45; // frozen fighters move at 45% speed
+const SOY_FRICTION = 0.5; // on soy sauce you keep 50% of your sliding speed per second
+export const STUN_TIME = 1.5; // enemies that slide across soy fall down for this long
 export const LANE_MIN_Z = -2.5; // how far "into" the screen fighters can walk
 export const LANE_MAX_Z = 2.5;
 
@@ -22,7 +24,7 @@ export class Fighter {
     this.pos = new THREE.Vector3();
     this.velY = 0;
     this.facing = 1;
-    this.state = 'idle'; // idle | walk | attack | hurt | sleep | emerge | dead
+    this.state = 'idle'; // idle | walk | attack | hurt | sleep | emerge | slide | stun | dead
     this.attack = null; // { move, t, hasHit, fired }
     this.hurtTimer = 0;
     this.knockVel = 0;
@@ -30,6 +32,13 @@ export class Fighter {
     this.sleepTimer = 0;
     this.freezeTimer = 0;
     this.walkPhase = 0;
+    this.onSoy = false; // standing on spilled soy sauce (set by Game every frame)
+    this.slideVel = new THREE.Vector2(); // x/z sliding speed on soy
+    this.stunTimer = 0;
+    this.stillTime = 0; // seconds the hero has been standing still (set by Game)
+    this.bowTimer = 0;
+    this.bowCooldown = 0;
+    this.pulse = 0; // short 'gulp' grow effect
     this.deadTimer = 0;
     this.animTime = 0;
     this.shieldUp = !!def.shield;
@@ -63,11 +72,21 @@ export class Fighter {
   get onGround() { return this.pos.y <= 0; }
   get alive() { return this.state !== 'dead'; }
   get hittable() { return this.alive && this.state !== 'emerge'; }
-  get busy() { return ['attack', 'hurt', 'sleep', 'emerge', 'dead'].includes(this.state); }
+  get busy() { return ['attack', 'hurt', 'sleep', 'emerge', 'slide', 'stun', 'bow', 'dead'].includes(this.state); }
 
   move(dx, dz, dt) {
     if (this.busy) return;
     const speed = this.def.speed * (this.freezeTimer > 0 ? FREEZE_SLOWDOWN : 1);
+    if (this.onSoy) {
+      // Slippery! Pressing a direction only pushes you; you keep sliding.
+      this.slideVel.x += dx * speed * 3 * dt;
+      this.slideVel.y += dz * speed * 1.8 * dt;
+      this.slideVel.clampLength(0, speed * 1.4);
+      if (dx !== 0) this.facing = Math.sign(dx);
+      this.state = dx || dz ? 'walk' : 'idle';
+      if (dx || dz) this.walkPhase += speed * 2.6 * dt;
+      return;
+    }
     this.pos.x += dx * speed * dt;
     this.pos.z = THREE.MathUtils.clamp(this.pos.z + dz * speed * 0.6 * dt, LANE_MIN_Z, LANE_MAX_Z);
     if (dx || dz) this.walkPhase += speed * 2.6 * dt;
@@ -119,6 +138,9 @@ export class Fighter {
     this.attack = null;
     if (this.hp <= 0) {
       this.die();
+    } else if (this.state === 'stun' || this.state === 'slide' || this.state === 'bow') {
+      // Knocked down or bowing: take the damage but don't get interrupted
+      this.knockVel = 0;
     } else if (move.effect === 'sleep') {
       this.state = 'sleep';
       this.sleepTimer = this.def.boss ? 1 : 3.5;
@@ -149,6 +171,16 @@ export class Fighter {
     this.pos.x += this.knockVel * dt;
     this.knockVel *= Math.pow(0.001, dt);
 
+    // Sliding on soy sauce
+    if (this.onSoy) {
+      this.pos.x += this.slideVel.x * dt;
+      this.pos.z = THREE.MathUtils.clamp(this.pos.z + this.slideVel.y * dt, LANE_MIN_Z, LANE_MAX_Z);
+      this.slideVel.multiplyScalar(Math.pow(SOY_FRICTION, dt));
+    } else {
+      this.slideVel.set(0, 0);
+    }
+    this.pulse = Math.max(0, this.pulse - dt);
+
     // Burning: damage over time
     if (this.burnTimer > 0 && this.alive) {
       this.burnTimer -= dt;
@@ -171,6 +203,13 @@ export class Fighter {
       case 'attack': this.updateAttack(dt); break;
       case 'hurt': if ((this.hurtTimer -= dt) <= 0) this.state = 'idle'; break;
       case 'sleep': if ((this.sleepTimer -= dt) <= 0) this.state = 'idle'; break;
+      case 'stun': if ((this.stunTimer -= dt) <= 0) this.state = 'idle'; break;
+      case 'bow':
+        if ((this.bowTimer -= dt) <= 0) {
+          this.state = 'idle';
+          this.bowCooldown = this.def.bowWhenStill.still; // must wait again before the next bow
+        }
+        break;
       case 'dead': this.deadTimer += dt; break;
     }
 
@@ -235,7 +274,12 @@ export class Fighter {
     this.visual.position.y = walking ? Math.abs(Math.sin(this.walkPhase)) * 0.06 : 0;
 
     // Fall over when asleep or dead, then sink into the ground
-    const tilt = this.state === 'dead' ? Math.PI / 2 : this.state === 'sleep' ? 0.35 : 0;
+    const tilt =
+      this.state === 'dead' || this.state === 'stun' ? Math.PI / 2
+      : this.state === 'sleep' ? 0.35
+      : this.state === 'slide' ? -0.4
+      : this.state === 'bow' ? -0.75 * this.facing // bend forward politely
+      : 0;
     this.visual.rotation.z = THREE.MathUtils.lerp(this.visual.rotation.z, tilt, 0.2);
     if (this.state === 'dead' && this.deadTimer > 1) this.visual.position.y = -(this.deadTimer - 1) * 1.5;
 
@@ -250,6 +294,10 @@ export class Fighter {
           : m.userData.baseEmissive,
       );
     }
+
+    // Quick grow-and-shrink when swallowing something
+    const grow = 1 + Math.sin((this.pulse / 0.3) * Math.PI) * 0.25;
+    this.visual.scale.set(this.facing * grow, grow, grow);
 
     if (this.shieldMesh) {
       this.shieldMesh.visible = this.shieldUp && this.alive;

@@ -1,10 +1,11 @@
 // Playable heroes. `model` picks the look from entities/models.js.
+// `name` and `title` are shown to the player, so they must be in French.
 //   moves.attack  – J key
 //   moves.special – K key
 export const CHARACTERS = {
   samacaille: {
     name: 'Samacaille',
-    title: 'Samurai with a fire sword',
+    title: "Samouraï à l'épée de feu",
     model: 'samurai',
     color: 0xc0392b,
     maxHp: 100,
@@ -15,7 +16,7 @@ export const CHARACTERS = {
   },
   rinoserase: {
     name: 'Rinoserase',
-    title: 'Rhino that spits fire',
+    title: 'Rhinocéros cracheur de feu',
     model: 'rhino',
     color: 0x8e8e8e,
     maxHp: 140,
@@ -26,7 +27,7 @@ export const CHARACTERS = {
   },
   alima: {
     name: 'Alima',
-    title: 'Big hammer & sleep arrows',
+    title: 'Marteau géant et flèches somnifères',
     model: 'hammerer',
     color: 0x2e86de,
     maxHp: 110,
@@ -37,7 +38,7 @@ export const CHARACTERS = {
   },
   lutar: {
     name: 'Lutar',
-    title: 'Gnome with double axes',
+    title: 'Gnome aux deux haches',
     model: 'gnome',
     color: 0x27ae60,
     maxHp: 85,

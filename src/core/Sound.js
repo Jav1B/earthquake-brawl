@@ -19,6 +19,18 @@ const SONGS = {
     bass: chords([45, 41, 48, 43], (r) => [r, r, r + 12, r, r, r, r + 12, r]),
     drums: repeat(['kh', 'h', 'sh', 'h', 'kh', 'kh', 'sh', 'h'], 4),
   },
+  // Japanese-sounding "in" scale for the Sushi Mountains
+  sushi: {
+    bpm: 126,
+    lead: [
+      76, null, 77, 76, 74, null, 70, 69,
+      70, null, 74, null, 76, 77, 76, null,
+      81, null, 77, 76, 74, null, 76, null,
+      74, 70, 69, null, 69, null, null, null,
+    ],
+    bass: chords([45, 41, 38, 40], (r) => [r, null, r + 12, null, r + 7, null, r + 12, r]),
+    drums: repeat(['kh', 'h', 'h', 'sh', 'kh', 'h', 'sh', 'h'], 4),
+  },
   boss: {
     bpm: 150,
     lead: [
@@ -130,6 +142,30 @@ export class Sound {
       case 'missile':
         this.tone({ freq: 200, to: 700, dur: 0.4, type: 'sawtooth', vol: 0.08 });
         this.noise({ dur: 0.5, vol: 0.2, filter: 'bandpass', freq: 600, to: 300 });
+        break;
+      case 'bow':
+        [72, 67, 64].forEach((n, i) => this.tone({ freq: midiToHz(n), dur: 0.4, type: 'sine', vol: 0.15, at: t + i * 0.18 }));
+        break;
+      case 'gulp':
+        this.tone({ freq: 500, to: 150, dur: 0.15, type: 'sine', vol: 0.3 });
+        this.tone({ freq: 300, to: 700, dur: 0.1, type: 'sine', vol: 0.15, at: t + 0.12 });
+        break;
+      case 'clang':
+        this.tone({ freq: 2200, to: 1800, dur: 0.12, type: 'triangle', vol: 0.12 });
+        this.noise({ dur: 0.08, vol: 0.12, filter: 'highpass', freq: 3000 });
+        break;
+      case 'energy':
+        this.tone({ freq: 300, to: 1200, dur: 0.4, type: 'sawtooth', vol: 0.07 });
+        this.tone({ freq: 600, to: 2400, dur: 0.4, type: 'sine', vol: 0.08 });
+        break;
+      case 'crash':
+        this.noise({ dur: 0.3, vol: 0.5, filter: 'lowpass', freq: 1800, to: 200 });
+        this.tone({ freq: 140, to: 60, dur: 0.2, type: 'square', vol: 0.12 });
+        this.noise({ dur: 0.4, vol: 0.15, filter: 'bandpass', freq: 500, at: t + 0.1 });
+        break;
+      case 'slip':
+        this.tone({ freq: 900, to: 200, dur: 0.35, type: 'sine', vol: 0.15 });
+        this.noise({ dur: 0.2, vol: 0.3, filter: 'lowpass', freq: 500, to: 100, at: t + 0.3 });
         break;
       case 'heal':
         [64, 67, 71, 76].forEach((n, i) => this.tone({ freq: midiToHz(n + 12), dur: 0.15, type: 'triangle', vol: 0.12, at: t + i * 0.06 }));

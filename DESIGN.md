@@ -2,6 +2,14 @@
 
 The ideas behind the game. Code in `src/data/` should match what's written here.
 
+## Langue / Language
+
+**Règle : tout le jeu est en français.** Les menus, les textes à l'écran, et les noms des héros,
+des attaques, des ennemis, des boss et des niveaux doivent être en français.
+
+_Rule: everything in the game is in French. Menus, on-screen text, and the names of heroes,
+moves, enemies, bosses and levels must all be in French._
+
 ## Story
 
 There was a earthquake and earth floor got shatered and from it bad guys are coming out.
@@ -51,14 +59,18 @@ and fill it in. Enemies can come back in later levels: just list them again.
 
 ---
 
-### Level 2: _name?_
+### Level 2: Sushi Mountains
 
-**Place:** _Where is it? What does it look like?_
+**Place:** Valley of mountains with sushi restaurants all along
 
 **Enemies:**
-- _Name: what it looks like and how it fights_
-- _..._
+- MiniSushi: its a salmon sushi. it will absorb projectiles from heroes (arrows, energy balls, etc) _(In game: « MiniSushi », small and quick, bumps you with its rice. Use close attacks on it!)_
+- Waiters: Waiters from the sushi restaurants. They have round serving holders they throw like boomerang. _(In game: « Serveur », stays away from you and throws « Plateau boomerang », which can hit you going out and coming back.)_
 
-**Boss:** _Name: what it looks like and its special attacks_
+**Environment:**
+- There are soja barrels the player can break, soja spills and makes it slidy for player and also enemies, enemies will also fall at the end of the sliding and be stunned for 1.5 seconds _(In game: break a barrel with any attack. Enemies that step in the soy slide across and fall down: hit them while they're on the ground!)_
 
-**How it plays:** _Anything special about this level?_
+**Boss:** Maitre Sushi: Looks like a martial arts teacher with a a kimono with sushi logo, bald. For short range attack he has metallic chopsticks. For long range he launches yellow energy balls. The weak point of maitre sushi is that if the player remains still for 3 seconds maitre sushi will go into salutation posture and stop fighting for 5 seconds, time for the player to attack him, it can be done repeteadly and attacking him during his salutation does not break him from doing it.
+- _In game: « Maître Sushi », attacks « Baguettes d'acier » and « Boule d'énergie ». He sometimes hops away from your attacks. Don't touch the controls for 3 seconds and he bows (🙇 on his health bar): run in and hit him!_
+
+**How it plays:** 6 waves of enemies, then the boss. You heal a little after each wave.

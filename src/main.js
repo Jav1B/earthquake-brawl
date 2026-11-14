@@ -5,7 +5,11 @@ import { Sound } from './core/Sound.js';
 import { CHARACTERS } from './data/characters.js';
 import { MOVES } from './data/moves.js';
 import { LEVELS } from './data/levels.js';
+import { ENEMIES } from './data/enemies.js';
 import { buildModel } from './entities/models.js';
+import { Level } from './levels/Level.js';
+
+// Everything the player sees must be in French (see DESIGN.md).
 
 // --- Renderer & camera -----------------------------------------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -27,21 +31,30 @@ addEventListener('resize', resize);
 resize();
 
 let sun;
+function addLights(target) {
+  target.add(new THREE.HemisphereLight(0xffffff, 0x445533, 1.3));
+  const light = new THREE.DirectionalLight(0xfff2dd, 1.6);
+  light.castShadow = true;
+  light.shadow.mapSize.set(2048, 2048);
+  Object.assign(light.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15 });
+  target.add(light, light.target);
+  return light;
+}
 function resetScene() {
   scene.clear();
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x445533, 1.3));
-  sun = new THREE.DirectionalLight(0xfff2dd, 1.6);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15 });
-  scene.add(sun, sun.target);
+  sun = addLights(scene);
 }
 
-// --- UI --------------------------------------------------------------------
+// --- UI helpers --------------------------------------------------------------
 const $ = (id) => document.getElementById(id);
 const show = (id, visible) => $(id).classList.toggle('hidden', !visible);
 const heroIds = Object.keys(CHARACTERS);
-let selected = 0;
+const hex = (color) => '#' + color.toString(16).padStart(6, '0');
+
+function showMessage(title, subtitle) {
+  $('message').innerHTML = title ? `${title}<small>${subtitle}</small>` : '';
+  show('message', !!title);
+}
 
 // Renders each hero's 3D model into a picture for the select screen.
 function renderPortraits() {
@@ -72,44 +85,70 @@ function renderPortraits() {
   return portraits;
 }
 
-function buildSelectScreen() {
-  const portraits = renderPortraits();
-  $('cards').innerHTML = '';
-  heroIds.forEach((id, i) => {
-    const c = CHARACTERS[id];
+// Builds each level's scenery off-screen and takes a picture of it.
+function renderLevelPreviews() {
+  const r = new THREE.WebGLRenderer({ antialias: true });
+  r.setSize(320, 180);
+  r.shadowMap.enabled = true;
+  const cam = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 200);
+  const previews = LEVELS.map((def) => {
+    const s = new THREE.Scene();
+    const light = addLights(s);
+    new Level(def, { scene: s, sfx() {} });
+    const x = 12;
+    light.position.set(x + 6, 12, 8);
+    light.target.position.set(x, 0, 0);
+    cam.position.set(x, CAM_HEIGHT, CAM_DISTANCE);
+    cam.lookAt(x, 0.9, 0);
+    r.render(s, cam);
+    return r.domElement.toDataURL();
+  });
+  r.dispose();
+  return previews;
+}
+
+// A row of selectable cards, controlled with arrows, number keys or the mouse.
+function makeMenu(containerId, items, onPick) {
+  const menu = { selected: 0, cards: [] };
+  menu.select = (i) => {
+    const next = (i + items.length) % items.length;
+    if (next !== menu.selected) sound.play('select');
+    menu.selected = next;
+    menu.cards.forEach((card, j) => card.classList.toggle('selected', j === next));
+  };
+  menu.update = () => {
+    if (input.pressed('left')) menu.select(menu.selected - 1);
+    if (input.pressed('right')) menu.select(menu.selected + 1);
+    items.forEach((_, i) => input.pressedCode(`Digit${i + 1}`) && menu.select(i));
+    if (input.pressed('start')) onPick(menu.selected);
+  };
+  $(containerId).innerHTML = '';
+  items.forEach((html, i) => {
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `
-      <div class="portrait" style="--hero:#${c.color.toString(16).padStart(6, '0')}"><img src="${portraits[id]}" alt="${c.name}"></div>
-      <h2>${i + 1}. ${c.name}</h2>
-      <div class="title">${c.title}</div>
-      <div class="moves">J: ${MOVES[c.moves.attack].name}<br>K: ${MOVES[c.moves.special].name}</div>`;
-    card.onmouseenter = () => select(i);
-    card.onclick = () => startGame(heroIds[i]);
-    $('cards').appendChild(card);
+    card.innerHTML = html;
+    card.onmouseenter = () => menu.select(i);
+    card.onclick = () => onPick(i);
+    $(containerId).appendChild(card);
+    menu.cards.push(card);
   });
-  select(selected);
+  menu.select(0);
+  return menu;
 }
 
-function select(i) {
-  const next = (i + heroIds.length) % heroIds.length;
-  if (next !== selected) sound.play('select');
-  selected = next;
-  [...$('cards').children].forEach((card, j) => card.classList.toggle('selected', j === selected));
-}
-
-function showMessage(title, subtitle) {
-  $('message').innerHTML = title ? `${title}<small>${subtitle}</small>` : '';
-  show('message', !!title);
-}
-
-// --- Game flow -------------------------------------------------------------
+// --- Sound & settings --------------------------------------------------------
 const input = new Input();
 const sound = new Sound();
-let game = null;
-let lastResult = null;
 
-// God mode: the hero can't lose health. On by default, remembered between visits.
+// Browsers only allow sound after the player interacts with the page.
+addEventListener('keydown', () => sound.unlock());
+addEventListener('pointerdown', () => sound.unlock());
+addEventListener('keydown', (e) => {
+  // Use the letter, not the key position, so M works on AZERTY keyboards too
+  if (e.key.toLowerCase() === 'm') $('mute').textContent = sound.toggleMute() ? '🔇 M' : '🔊 M';
+});
+
+// Invincible mode: the hero can't lose health. On by default, remembered between visits.
 let godMode = true;
 try {
   godMode = localStorage.getItem('godMode') !== 'off';
@@ -120,58 +159,80 @@ function setGodMode(on) {
     localStorage.setItem('godMode', on ? 'on' : 'off');
   } catch {}
   if (game) game.player.invincible = on;
-  $('god').textContent = on ? '⭐ GOD MODE (G)' : '';
-  $('god-select').textContent = `God mode: ${on ? 'ON ⭐' : 'OFF'} (press G)`;
+  $('god').textContent = on ? '⭐ INVINCIBLE (G)' : '';
+  $('god-select').textContent = `Mode invincible : ${on ? 'ACTIVÉ ⭐' : 'DÉSACTIVÉ'} (touche G)`;
 }
 addEventListener('keydown', (e) => {
-  if (e.code === 'KeyG') setGodMode(!godMode);
+  if (e.key.toLowerCase() === 'g') setGodMode(!godMode);
 });
 
-// Browsers only allow sound after the player interacts with the page.
-addEventListener('keydown', () => sound.unlock());
-addEventListener('pointerdown', () => sound.unlock());
-addEventListener('keydown', (e) => {
-  if (e.code === 'KeyM') $('mute').textContent = sound.toggleMute() ? '🔇 M' : '🔊 M';
-});
-
+// --- Screens -----------------------------------------------------------------
+// 'heroes' → 'levels' → 'game'
+let screen = 'heroes';
+let game = null;
+let lastResult = null;
 let heroId = null;
 let levelIndex = 0;
 
-function startGame(id, level = 0) {
-  heroId = id;
-  levelIndex = level;
-  resetScene();
-  game = new Game(scene, heroId, sound, { godMode, levelIndex });
-  $('level-name').textContent = LEVELS[levelIndex].name;
-  show('level-name', true);
-  setTimeout(() => game?.levelIndex === level && show('level-name', false), 2500);
-  lastResult = null;
-  sound.play('start');
-  sound.playMusic('forest');
-  $('player-name').textContent = CHARACTERS[heroId].name;
-  show('select', false);
-  show('hud', true);
-  show('help', true);
-  showMessage(null);
-}
+const portraits = renderPortraits();
+const heroMenu = makeMenu(
+  'cards',
+  heroIds.map((id, i) => {
+    const c = CHARACTERS[id];
+    return `
+      <div class="portrait" style="--hero:${hex(c.color)}"><img src="${portraits[id]}" alt="${c.name}"></div>
+      <h2>${i + 1}. ${c.name}</h2>
+      <div class="title">${c.title}</div>
+      <div class="moves">J : ${MOVES[c.moves.attack].name}<br>K : ${MOVES[c.moves.special].name}</div>`;
+  }),
+  (i) => {
+    heroId = heroIds[i];
+    sound.play('start');
+    goTo('levels');
+  },
+);
 
-function backToSelect() {
-  game = null;
-  sound.playMusic('forest');
-  resetScene();
-  show('select', true);
-  show('hud', false);
-  show('help', false);
+const previews = renderLevelPreviews();
+const levelMenu = makeMenu(
+  'level-cards',
+  LEVELS.map(
+    (def, i) => `
+      <img src="${previews[i]}" alt="${def.name}">
+      <h2>${def.name}</h2>
+      <div class="title">Boss : ${ENEMIES[def.boss]?.name ?? '?'}</div>`,
+  ),
+  (i) => startGame(heroId, i),
+);
+levelMenu.cards.forEach((c) => c.classList.add('level-card'));
+
+function goTo(name) {
+  screen = name;
+  if (name !== 'game') {
+    game = null;
+    resetScene();
+    sound.playMusic('forest');
+  }
+  show('select', name === 'heroes');
+  show('levels', name === 'levels');
+  show('hud', name === 'game');
+  show('help', name === 'game');
   show('boss', false);
   show('level-name', false);
   showMessage(null);
 }
 
-function updateSelect() {
-  if (input.pressed('left')) select(selected - 1);
-  if (input.pressed('right')) select(selected + 1);
-  heroIds.forEach((_, i) => input.pressedCode(`Digit${i + 1}`) && select(i));
-  if (input.pressed('start')) startGame(heroIds[selected]);
+function startGame(id, level) {
+  heroId = id;
+  levelIndex = level;
+  goTo('game');
+  resetScene();
+  game = new Game(scene, heroId, sound, { godMode, levelIndex });
+  lastResult = null;
+  sound.play('start');
+  $('player-name').textContent = CHARACTERS[heroId].name;
+  $('level-name').textContent = LEVELS[levelIndex].name;
+  show('level-name', true);
+  setTimeout(() => game?.levelIndex === level && show('level-name', false), 2500);
 }
 
 function updateHud() {
@@ -180,21 +241,41 @@ function updateHud() {
   const boss = game.level.boss;
   show('boss', !!boss);
   if (boss) {
-    $('boss-name').textContent = boss.def.name + (boss.shieldUp ? ' 🛡️' : '');
+    $('boss-name').textContent =
+      boss.def.name + (boss.shieldUp ? ' 🛡️' : '') + (boss.state === 'bow' ? ' 🙇 salue… frappe-le !' : '');
     $('boss-hp').style.width = `${(boss.hp / boss.def.maxHp) * 100}%`;
   }
-  // Music: boss theme while the boss is alive, jingle when the game ends.
+  // Music: the level's song, boss theme while the boss is alive, jingle at the end.
   if (game.result !== lastResult) {
     lastResult = game.result;
     sound.playMusic(null);
     sound.play(game.result);
   } else if (!game.result) {
-    sound.playMusic(boss?.alive ? 'boss' : 'forest');
+    sound.playMusic(boss?.alive ? 'boss' : game.level.def.music ?? 'forest');
   }
   const hasNextLevel = levelIndex + 1 < LEVELS.length;
-  if (game.result === 'win' && hasNextLevel) showMessage('LEVEL CLEAR!', 'Press Enter for the next level');
-  if (game.result === 'win' && !hasNextLevel) showMessage('YOU WIN!', 'You beat every level! Press Enter to play again');
-  if (game.result === 'lose') showMessage('GAME OVER', 'Press Enter to try again');
+  if (game.result === 'win' && hasNextLevel) showMessage('NIVEAU TERMINÉ&nbsp;!', 'Appuie sur Entrée pour le niveau suivant');
+  if (game.result === 'win' && !hasNextLevel) showMessage('VICTOIRE&nbsp;!', 'Tu as fini tous les niveaux&nbsp;! Appuie sur Entrée pour rejouer');
+  if (game.result === 'lose') showMessage('PERDU&nbsp;!', 'Appuie sur Entrée pour réessayer');
+}
+
+function updateGame(dt) {
+  game.update(dt, input);
+  updateHud();
+  if (game.result && input.pressed('start')) {
+    if (game.result === 'win' && levelIndex + 1 < LEVELS.length) startGame(heroId, levelIndex + 1);
+    else if (game.result === 'lose') startGame(heroId, levelIndex);
+    else goTo('heroes');
+    return;
+  }
+  if (input.pressed('back')) return goTo('levels');
+
+  const x = game.cameraX;
+  camera.position.set(x, CAM_HEIGHT, CAM_DISTANCE);
+  camera.lookAt(x, 0.9, 0);
+  sun.position.set(x + 6, 12, 8);
+  sun.target.position.set(x, 0, 0);
+  renderer.render(scene, camera);
 }
 
 // --- Main loop -------------------------------------------------------------
@@ -202,33 +283,19 @@ const clock = new THREE.Clock();
 function tick() {
   const dt = Math.min(clock.getDelta(), 1 / 30);
 
-  if (!game) {
-    updateSelect();
-  } else {
-    game.update(dt, input);
-    updateHud();
-    if (game.result && input.pressed('start')) {
-      if (game.result === 'win' && levelIndex + 1 < LEVELS.length) startGame(heroId, levelIndex + 1);
-      else backToSelect();
-    }
-
-    const x = game.cameraX;
-    camera.position.set(x, CAM_HEIGHT, CAM_DISTANCE);
-    camera.lookAt(x, 0.9, 0);
-    sun.position.set(x + 6, 12, 8);
-    sun.target.position.set(x, 0, 0);
-    renderer.render(scene, camera);
-  }
+  if (screen === 'heroes') heroMenu.update();
+  else if (screen === 'levels') {
+    if (input.pressed('back')) goTo('heroes');
+    else levelMenu.update();
+  } else updateGame(dt);
 
   input.endFrame();
   requestAnimationFrame(tick);
 }
 
-resetScene();
-buildSelectScreen();
+goTo('heroes');
 setGodMode(godMode);
-sound.playMusic('forest');
-// Handy for testing: ?hero=lutar skips the select screen.
-const heroParam = new URLSearchParams(location.search).get('hero');
-if (CHARACTERS[heroParam]) startGame(heroParam);
+// Handy for testing: ?hero=lutar&level=2 skips the menus.
+const params = new URLSearchParams(location.search);
+if (CHARACTERS[params.get('hero')]) startGame(params.get('hero'), Math.max(0, (+params.get('level') || 1) - 1) % LEVELS.length);
 tick();

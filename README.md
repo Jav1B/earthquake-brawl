@@ -1,4 +1,6 @@
-# Earthquake Brawl
+# Bagarre Sismique (earthquake-brawl)
+
+The game itself is entirely in French.
 
 A side-scrolling beat 'em up built with [Three.js](https://threejs.org/) and [Vite](https://vite.dev/).
 
@@ -18,11 +20,11 @@ Add `?hero=lutar` (or any hero id) to the URL to skip the select screen.
 
 | Action | Keys |
 | ------ | ---- |
-| Move   | WASD / Arrow keys |
+| Move   | ZQSD on AZERTY (WASD on QWERTY) / Arrow keys |
 | Attack | J |
 | Special | K |
 | Jump   | Space |
-| Choose hero / start | ← → or 1–4, Enter |
+| Choose hero, then level | ← → or number keys, Enter (Escape goes back) |
 | God mode (can't lose health) | G |
 | Mute | M |
 

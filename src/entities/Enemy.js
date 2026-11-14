@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Fighter } from './Fighter.js';
+import { Fighter, STUN_TIME } from './Fighter.js';
 import { MOVES } from '../data/moves.js';
 
 // Enemy AI: climb out of a crack, walk up to the hero, attack sometimes.
@@ -41,11 +41,33 @@ export class Enemy extends Fighter {
       this.syncMesh();
       return;
     }
+    // Stepping onto soy sauce: slide all the way across, then fall down
+    if (this.onSoy && !this.wasOnSoy && this.alive && !this.busy) {
+      this.state = 'slide';
+      this.attack = null;
+      this.slideVel.set(this.facing * Math.max(4.5, this.def.speed * 1.6), 0);
+    }
+    if (this.state === 'slide' && (!this.onSoy || this.slideVel.length() < 0.6)) {
+      this.state = 'stun';
+      this.stunTimer = STUN_TIME;
+      this.world.sfx('slip');
+    }
+    this.wasOnSoy = this.onSoy;
     super.update(dt);
   }
 
   think(player, dt) {
+    this.bowCooldown = Math.max(0, this.bowCooldown - dt);
     if (this.busy) return;
+    // Maître Sushi's weak spot: he bows if the hero stands still long enough
+    const bow = this.def.bowWhenStill;
+    if (bow && this.bowCooldown <= 0 && player.stillTime >= bow.still) {
+      this.state = 'bow';
+      this.bowTimer = bow.bow;
+      this.attack = null;
+      this.world.sfx('bow');
+      return;
+    }
     if (this.tryDodge(player)) return;
     if (!player.alive) {
       this.state = 'idle';
@@ -76,11 +98,16 @@ export class Enemy extends Fighter {
       }
     }
 
-    if (inMelee) {
+    if (inMelee && this.melee.length) {
       this.state = 'idle';
       return;
     }
-    const mx = Math.abs(dx) > this.meleeRange * 0.8 ? Math.sign(dx) : 0;
+    // Throwers with no close-up attack keep their distance
+    let mx = Math.abs(dx) > this.meleeRange * 0.8 ? Math.sign(dx) : 0;
+    if (!this.melee.length && this.def.keepDistance) {
+      const gap = Math.abs(dx) - this.def.keepDistance;
+      mx = Math.abs(gap) < 1 ? 0 : Math.sign(dx) * Math.sign(gap);
+    }
     const mz = Math.abs(dz) > 0.2 ? Math.sign(dz) : 0;
     this.move(mx, mz, dt);
     this.facing = Math.sign(dx) || this.facing;

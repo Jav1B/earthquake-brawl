@@ -8,6 +8,7 @@ const BINDINGS = {
   attack: ['KeyJ'],
   special: ['KeyK'],
   start: ['Enter'],
+  back: ['Escape', 'Backspace'],
 };
 
 export class Input {
