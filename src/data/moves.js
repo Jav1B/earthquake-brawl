@@ -7,7 +7,8 @@
 //                the farthest distance they'll shoot from)
 //   knockback  – how far the target gets pushed
 // Optional extras:
-//   effect     – 'burn' (damage over time) or 'sleep' (target can't move)
+//   effect     – 'burn' (damage over time), 'sleep' (target can't move)
+//                or 'freeze' (target moves slowly)
 //   lunge      – dash forward this far during the attack
 //   bothSides  – hits in front AND behind (spin attacks)
 //   projectile – shoots something instead of hitting up close
@@ -36,6 +37,12 @@ export const MOVES = {
   claw:       { name: 'Claw', damage: 5, startup: 0.25, active: 0.1, recovery: 0.3, range: 1.0, knockback: 0.3 },
   rockPunch:  { name: 'Rock Punch', damage: 12, startup: 0.45, active: 0.12, recovery: 0.5, range: 1.4, knockback: 1.5 },
   robotPunch: { name: 'Robot Punch', damage: 10, startup: 0.55, active: 0.15, recovery: 0.4, range: 1.6, knockback: 2.0 },
+  metalPunch: { name: 'Metal Punch', damage: 13, startup: 0.5, active: 0.12, recovery: 0.5, range: 1.5, knockback: 2.0, sound: 'heavy' },
+  lavaClaw:   { name: 'Lava Claw', damage: 6, startup: 0.15, active: 0.12, recovery: 0.3, range: 1.0, knockback: 0.3, lunge: 1.5, effect: 'burn' },
+  ninjaSlash: { name: 'Ninja Slash', damage: 7, startup: 0.12, active: 0.1, recovery: 0.25, range: 1.3, knockback: 0.5, lunge: 2.5 },
+  apeSlam:    { name: 'Ape Slam', damage: 12, startup: 0.45, active: 0.15, recovery: 0.45, range: 1.5, knockback: 1.8, sound: 'heavy' },
+  iceSpit:    { name: 'Ice Spit', damage: 6, startup: 0.35, active: 0.05, recovery: 0.5, range: 10, effect: 'freeze', sound: 'ice',
+                projectile: { shape: 'ice', speed: 9, size: 0.28, color: 0x99eeff, life: 2, aimZ: true } },
   missile:    { name: 'Missile', damage: 10, startup: 0.5, active: 0.05, recovery: 0.6, range: 12, sound: 'missile',
                 projectile: { shape: 'missile', speed: 8, size: 0.25, color: 0xdddddd, life: 2.5, aimZ: true } },
 };

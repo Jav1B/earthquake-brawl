@@ -5,6 +5,8 @@ import { buildModel } from './models.js';
 const GRAVITY = 20;
 const BURN_DAMAGE_PER_SEC = 3;
 const BURN_TIME = 3;
+const FREEZE_TIME = 2.5;
+const FREEZE_SLOWDOWN = 0.45; // frozen fighters move at 45% speed
 export const LANE_MIN_Z = -2.5; // how far "into" the screen fighters can walk
 export const LANE_MAX_Z = 2.5;
 
@@ -26,6 +28,8 @@ export class Fighter {
     this.knockVel = 0;
     this.burnTimer = 0;
     this.sleepTimer = 0;
+    this.freezeTimer = 0;
+    this.walkPhase = 0;
     this.deadTimer = 0;
     this.animTime = 0;
     this.shieldUp = !!def.shield;
@@ -35,15 +39,19 @@ export class Fighter {
     const model = buildModel(def.model, def);
     this.visual = model.root;
     this.weapons = model.weapons;
+    this.legs = model.legs ?? [];
+    this.arms = model.arms ?? [];
     this.shieldMesh = model.shield ?? null;
     this.group = new THREE.Group();
     this.group.add(this.visual);
 
     // Give each fighter its own materials so hit flashes don't affect others.
     this.materials = [];
+    this.flickers = [];
     this.visual.traverse((o) => {
       if (!o.isMesh) return;
-      o.castShadow = true;
+      o.castShadow = !o.userData.isOutline;
+      if (o.userData.flicker) this.flickers.push(o);
       if (o.userData.noFlash) return;
       o.material = o.material.clone();
       o.material.userData.baseEmissive = o.material.emissive.getHex();
@@ -59,8 +67,10 @@ export class Fighter {
 
   move(dx, dz, dt) {
     if (this.busy) return;
-    this.pos.x += dx * this.def.speed * dt;
-    this.pos.z = THREE.MathUtils.clamp(this.pos.z + dz * this.def.speed * 0.6 * dt, LANE_MIN_Z, LANE_MAX_Z);
+    const speed = this.def.speed * (this.freezeTimer > 0 ? FREEZE_SLOWDOWN : 1);
+    this.pos.x += dx * speed * dt;
+    this.pos.z = THREE.MathUtils.clamp(this.pos.z + dz * speed * 0.6 * dt, LANE_MIN_Z, LANE_MAX_Z);
+    if (dx || dz) this.walkPhase += speed * 2.6 * dt;
     if (dx !== 0) this.facing = Math.sign(dx);
     this.state = dx || dz ? 'walk' : 'idle';
   }
@@ -105,6 +115,7 @@ export class Fighter {
     if (!this.invincible) this.hp = Math.max(0, this.hp - move.damage);
     this.knockVel = Math.sign(this.pos.x - fromX || 1) * (move.knockback ?? 0) * 6 * (this.def.boss ? 0.3 : 1);
     if (move.effect === 'burn') this.burnTimer = BURN_TIME;
+    if (move.effect === 'freeze') this.freezeTimer = FREEZE_TIME;
     this.attack = null;
     if (this.hp <= 0) {
       this.die();
@@ -154,6 +165,7 @@ export class Fighter {
       }
     }
     this.shieldFlash = Math.max(0, this.shieldFlash - dt);
+    this.freezeTimer = Math.max(0, this.freezeTimer - dt);
 
     switch (this.state) {
       case 'attack': this.updateAttack(dt); break;
@@ -182,22 +194,37 @@ export class Fighter {
     }
   }
 
-  // Weapon angle during an attack: wind back, swing forward, return.
-  weaponAngle() {
+  // Weapon angle during an attack: rest → wind up → strike → back to rest.
+  weaponAngle(weapon) {
+    const { rest, windup, strike } = weapon.userData.pose ?? { rest: 0, windup: 0.8, strike: -1.6 };
     const a = this.attack;
-    if (!a) return 0;
+    if (!a) return rest;
     const { startup, active, recovery } = a.move;
-    if (a.t < startup) return 0.8 * (a.t / startup);
-    if (a.t < startup + active) return 0.8 - 2.4 * ((a.t - startup) / active);
-    return -1.6 * Math.max(0, 1 - (a.t - startup - active) / recovery);
+    const lerp = THREE.MathUtils.lerp;
+    if (a.t < startup) return lerp(rest, windup, a.t / startup);
+    if (a.t < startup + active) return lerp(windup, strike, (a.t - startup) / active);
+    return lerp(strike, rest, Math.min(1, (a.t - startup - active) / recovery));
   }
 
   syncMesh() {
     this.group.position.copy(this.pos);
     this.visual.scale.x = this.facing;
 
-    const swing = this.weaponAngle();
-    for (const w of this.weapons) w.rotation.z = swing * (w.userData.swingScale ?? 1);
+    for (const w of this.weapons) w.rotation.z = this.weaponAngle(w);
+
+    // Legs and arms swing while walking, tuck in while jumping
+    const walking = this.state === 'walk';
+    const inAir = this.pos.y > 0.05;
+    for (const leg of this.legs) {
+      const target = inAir ? 0.5 * Math.cos(leg.userData.phase) : walking ? Math.sin(this.walkPhase + leg.userData.phase) * 0.6 : 0;
+      leg.rotation.z = THREE.MathUtils.lerp(leg.rotation.z, target, 0.35);
+    }
+    for (const arm of this.arms) {
+      const target = walking ? -Math.sin(this.walkPhase + arm.userData.phase) * 0.45 : 0;
+      arm.rotation.z = THREE.MathUtils.lerp(arm.rotation.z, target, 0.3);
+    }
+    // Flames and glows wobble
+    for (const f of this.flickers) f.scale.setScalar(0.8 + Math.random() * 0.4);
 
     // Spin attacks rotate the whole body
     const a = this.attack;
@@ -205,7 +232,7 @@ export class Fighter {
     this.visual.rotation.y = spinning ? ((a.t - a.move.startup) / a.move.active) * Math.PI * 2 : 0;
 
     // Little bounce while walking
-    this.visual.position.y = this.state === 'walk' ? Math.abs(Math.sin(this.animTime * 12)) * 0.08 : 0;
+    this.visual.position.y = walking ? Math.abs(Math.sin(this.walkPhase)) * 0.06 : 0;
 
     // Fall over when asleep or dead, then sink into the ground
     const tilt = this.state === 'dead' ? Math.PI / 2 : this.state === 'sleep' ? 0.35 : 0;
@@ -219,6 +246,7 @@ export class Fighter {
         flashing ? 0xffffff
           : burning ? 0xff4400
           : this.state === 'sleep' ? 0x223366
+          : this.freezeTimer > 0 ? 0x1166aa
           : m.userData.baseEmissive,
       );
     }

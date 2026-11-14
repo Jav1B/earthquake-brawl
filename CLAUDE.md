@@ -17,7 +17,9 @@ Side-scrolling beat 'em up, made by a parent and their kid. Three.js + Vite, pla
 - `Projectile` handles anything a move with `projectile: {...}` shoots.
 - `Game` (src/core/Game.js) owns one play-through: player, level, projectiles, hit sparks, camera x, win/lose. It only needs a THREE.Scene, so it runs headless in Node (that's how `npm test` works).
 - `Level` builds scenery by `theme`, spawns waves out of cracks, and locks the camera until a wave is cleared.
-- Art is placeholder primitives built in `src/entities/models.js` (a `model` id per character/enemy). Weapons are pivots that swing during attacks.
+- Art is toon-shaded primitives with outlines, built in `src/entities/models.js` (a `model` id per character/enemy). Builders return `legs`/`arms` pivots (walk swing by `userData.phase`) and `weapons` pivots animated by `pose(rest, windup, strike)` angles around z. Parts with `flicker` wobble (flames). The select screen renders hero portraits from the same models.
+- Status effects: `burn`, `sleep`, `freeze` (slow). Enemy options: `shield`, `turnDelay`, `dodge`.
+- Clearing a wave heals the hero 25% (`WAVE_CLEAR_HEAL` in Level.js).
 
 ## Visual testing
 Headless Firefox `--screenshot` does NOT capture WebGL canvases (they come out black). To screenshot gameplay, render with `preserveDrawingBuffer: true` and `drawImage` the WebGL canvas onto a 2D canvas.

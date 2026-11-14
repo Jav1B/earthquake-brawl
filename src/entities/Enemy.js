@@ -46,6 +46,7 @@ export class Enemy extends Fighter {
 
   think(player, dt) {
     if (this.busy) return;
+    if (this.tryDodge(player)) return;
     if (!player.alive) {
       this.state = 'idle';
       return;
@@ -83,6 +84,20 @@ export class Enemy extends Fighter {
     const mz = Math.abs(dz) > 0.2 ? Math.sign(dz) : 0;
     this.move(mx, mz, dt);
     this.facing = Math.sign(dx) || this.facing;
+  }
+
+  // Agile enemies (def.dodge = chance 0..1) hop backwards when the hero
+  // starts an attack close to them.
+  tryDodge(player) {
+    if (!this.def.dodge || !this.onGround || player.attack === this.lastSeenAttack) return false;
+    this.lastSeenAttack = player.attack;
+    if (!player.attack) return false;
+    const dx = player.pos.x - this.pos.x;
+    if (Math.abs(dx) > 2.5 || Math.abs(player.pos.z - this.pos.z) > 0.8 || Math.random() > this.def.dodge) return false;
+    this.velY = 6;
+    this.knockVel = -Math.sign(dx || 1) * 7;
+    this.world.sfx('jump');
+    return true;
   }
 }
 

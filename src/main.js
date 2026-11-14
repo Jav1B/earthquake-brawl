@@ -4,6 +4,7 @@ import { Game } from './core/Game.js';
 import { Sound } from './core/Sound.js';
 import { CHARACTERS } from './data/characters.js';
 import { MOVES } from './data/moves.js';
+import { buildModel } from './entities/models.js';
 
 // --- Renderer & camera -----------------------------------------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -41,14 +42,44 @@ const show = (id, visible) => $(id).classList.toggle('hidden', !visible);
 const heroIds = Object.keys(CHARACTERS);
 let selected = 0;
 
+// Renders each hero's 3D model into a picture for the select screen.
+function renderPortraits() {
+  const size = 200;
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  r.setSize(size, size);
+  const s = new THREE.Scene();
+  s.add(new THREE.HemisphereLight(0xffffff, 0x665544, 1.6));
+  const light = new THREE.DirectionalLight(0xffffff, 1.8);
+  light.position.set(3, 4, 5);
+  s.add(light);
+  const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  const portraits = {};
+  for (const id of heroIds) {
+    const { root } = buildModel(CHARACTERS[id].model, CHARACTERS[id]);
+    root.rotation.y = -0.6; // turn toward the camera a bit
+    s.add(root);
+    const box = new THREE.Box3().setFromObject(root);
+    const center = box.getCenter(new THREE.Vector3());
+    const fit = Math.max(box.max.y - box.min.y, box.max.x - box.min.x) * 1.9;
+    cam.position.set(center.x + fit * 0.15, center.y + fit * 0.15, center.z + fit);
+    cam.lookAt(center);
+    r.render(s, cam);
+    portraits[id] = r.domElement.toDataURL();
+    s.remove(root);
+  }
+  r.dispose();
+  return portraits;
+}
+
 function buildSelectScreen() {
+  const portraits = renderPortraits();
   $('cards').innerHTML = '';
   heroIds.forEach((id, i) => {
     const c = CHARACTERS[id];
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
-      <div class="swatch" style="background:#${c.color.toString(16).padStart(6, '0')}"></div>
+      <div class="portrait" style="--hero:#${c.color.toString(16).padStart(6, '0')}"><img src="${portraits[id]}" alt="${c.name}"></div>
       <h2>${i + 1}. ${c.name}</h2>
       <div class="title">${c.title}</div>
       <div class="moves">J: ${MOVES[c.moves.attack].name}<br>K: ${MOVES[c.moves.special].name}</div>`;

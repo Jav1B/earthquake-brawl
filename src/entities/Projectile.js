@@ -24,6 +24,7 @@ export class Projectile {
     const geometry =
       p.shape === 'arrow' ? new THREE.BoxGeometry(0.7, 0.05, 0.05)
       : p.shape === 'missile' ? new THREE.CylinderGeometry(0.1, 0.1, 0.6, 8).rotateZ(Math.PI / 2)
+      : p.shape === 'ice' ? new THREE.OctahedronGeometry(p.size, 0)
       : new THREE.SphereGeometry(p.size, 12, 8);
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.position.copy(this.pos);
@@ -36,6 +37,7 @@ export class Projectile {
     if (this.life <= 0) this.dead = true;
     this.mesh.position.copy(this.pos);
     this.mesh.rotation.y = -Math.atan2(this.vel.z, this.vel.x);
+    if (this.move.projectile.shape === 'ice') this.mesh.rotation.x += dt * 10; // tumbling ice chunk
   }
 
   hits(f) {

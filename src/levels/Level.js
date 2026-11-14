@@ -3,6 +3,8 @@ import { Enemy } from '../entities/Enemy.js';
 import { ENEMIES } from '../data/enemies.js';
 import { LANE_MIN_Z, LANE_MAX_Z } from '../entities/Fighter.js';
 
+const WAVE_CLEAR_HEAL = 0.25; // fraction of max HP restored after each wave
+
 // Builds the scenery for a level and spawns enemy waves out of
 // earthquake cracks as the hero moves forward.
 export class Level {
@@ -107,6 +109,11 @@ export class Level {
     if (this.locked && this.enemies.every((e) => !e.alive)) {
       this.locked = false;
       this.waveIndex++;
+      // Reward for clearing a wave: heal a bit
+      if (player.alive && player.hp < player.def.maxHp) {
+        player.hp = Math.min(player.def.maxHp, player.hp + player.def.maxHp * WAVE_CLEAR_HEAL);
+        this.world.sfx('heal');
+      }
     }
   }
 

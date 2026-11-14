@@ -131,6 +131,14 @@ export class Sound {
         this.tone({ freq: 200, to: 700, dur: 0.4, type: 'sawtooth', vol: 0.08 });
         this.noise({ dur: 0.5, vol: 0.2, filter: 'bandpass', freq: 600, to: 300 });
         break;
+      case 'heal':
+        [64, 67, 71, 76].forEach((n, i) => this.tone({ freq: midiToHz(n + 12), dur: 0.15, type: 'triangle', vol: 0.12, at: t + i * 0.06 }));
+        break;
+      case 'heavy': this.noise({ dur: 0.25, vol: 0.3, filter: 'lowpass', freq: 600, to: 150 }); break;
+      case 'ice':
+        [1800, 2400, 3000].forEach((f, i) => this.tone({ freq: f, to: f * 0.7, dur: 0.12, type: 'sine', vol: 0.08, at: t + i * 0.04 }));
+        this.noise({ dur: 0.2, vol: 0.15, filter: 'highpass', freq: 5000 });
+        break;
       case 'hit':
         this.noise({ dur: 0.12, vol: 0.45, filter: 'lowpass', freq: 2500, to: 300 });
         this.tone({ freq: 160, to: 50, dur: 0.12, type: 'square', vol: 0.15 });

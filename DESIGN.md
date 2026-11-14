@@ -27,6 +27,10 @@ _First version made up by Claude. Change anything!_ J = attack, K = special.
 _First version made up by Claude. Change anything!_ They climb out of the earthquake cracks.
 - Crack Crawler: small purple creature with claws
 - Rock Brute: big slow rock monster that punches hard
+- House: a house with metal fists _(In game: slow and tough, heavy Metal Punch.)_
+- Chati-grife: a cat with lava claws _(In game: fast, pounces, its claws set you on fire.)_
+- Ningage: ninja hyper-agile with a sword. _(In game: dashing sword slash, hops away from your attacks.)_
+- Chimpanze: a big ape that spits ice. _(In game: Ape Slam up close, Ice Spit from far away. Ice makes you slow.)_
 
 ## Bosses
 
@@ -36,3 +40,4 @@ _First version made up by Claude. Change anything!_ They climb out of the earthq
 ## Levels
 
 1. Forest level
+   - 8 waves of enemies, ending with the Missile Robot. You heal a little after each wave.
