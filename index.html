@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Earthquake Brawl</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #111; overflow: hidden; font-family: system-ui, sans-serif; color: #fff; }
+      canvas { display: block; }
+      .hidden { display: none !important; }
+      .bar { height: 14px; background: #400; border: 2px solid #fff; margin-top: 4px; }
+      .bar > div { height: 100%; background: #3c3; transition: width 0.15s; }
+
+      #hud { position: fixed; top: 12px; left: 12px; font-size: 16px; font-weight: bold; text-shadow: 0 1px 3px #000; pointer-events: none; }
+      #hud .bar { width: 220px; }
+      #boss { position: fixed; top: 12px; right: 12px; text-align: right; font-weight: bold; text-shadow: 0 1px 3px #000; pointer-events: none; }
+      #boss .bar { width: 320px; }
+      #boss .bar > div { background: #c33; }
+      #mute { position: fixed; bottom: 12px; right: 12px; color: #ddd; font-size: 13px; text-shadow: 0 1px 2px #000; z-index: 5; }
+      #help { position: fixed; bottom: 12px; left: 12px; color: #ddd; font-size: 13px; text-shadow: 0 1px 2px #000; }
+      #message { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 56px; font-weight: 900; text-shadow: 0 4px 8px #000; pointer-events: none; }
+      #message small { font-size: 20px; font-weight: normal; margin-top: 12px; }
+
+      #select { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: radial-gradient(circle at 50% 40%, #3b2a1a, #0d0805); padding: 16px; box-sizing: border-box; }
+      #select h1 { font-size: clamp(28px, 6vw, 56px); margin: 0 0 4px; letter-spacing: 2px; text-shadow: 0 0 20px #f60; }
+      #select p { margin: 0 0 28px; color: #e8c9a0; text-align: center; }
+      #cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+      .card { width: 170px; padding: 18px 14px; border: 3px solid #555; border-radius: 12px; background: #1d1510; cursor: pointer; text-align: center; transition: transform 0.1s; }
+      .card.selected { border-color: #ff8800; transform: scale(1.07); box-shadow: 0 0 24px #f60a; }
+      .card .swatch { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 10px; border: 3px solid #fff3; }
+      .card h2 { margin: 0 0 6px; font-size: 20px; }
+      .card div.title { color: #ccc; font-size: 14px; min-height: 36px; }
+      .card .moves { margin-top: 10px; font-size: 12px; color: #fc8; }
+      #select .keys { margin-top: 28px; color: #aaa; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div id="select">
+      <h1>EARTHQUAKE BRAWL</h1>
+      <p>The earth shattered, and bad guys are crawling out of the cracks!</p>
+      <div id="cards"></div>
+      <div class="keys">← → or 1–4 to choose · Enter to start</div>
+    </div>
+    <div id="hud" class="hidden">
+      <div id="player-name"></div>
+      <div class="bar"><div id="player-hp" style="width:100%"></div></div>
+    </div>
+    <div id="boss" class="hidden">
+      <div id="boss-name"></div>
+      <div class="bar"><div id="boss-hp" style="width:100%"></div></div>
+    </div>
+    <div id="help" class="hidden">Move: WASD / Arrows · Attack: J · Special: K · Jump: Space · Mute: M</div>
+    <div id="mute">🔊 M</div>
+    <div id="message" class="hidden"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
