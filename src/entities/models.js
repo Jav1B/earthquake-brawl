@@ -6,6 +6,7 @@ import * as THREE from 'three';
 //   legs    – pivots that swing when walking (userData.phase = 0 or π)
 //   arms    – pivots that swing while walking (non-attacking arms)
 //   shield  – optional mesh shown while a shield is up
+//   floats  – true for fighters that hover (ghosts)
 // Parts marked `flicker` (flames, glows) wobble every frame.
 // Swap these for real models/sprites later without touching game logic.
 
@@ -74,8 +75,9 @@ function limb(x, y, z, r, len, color, phase = 0, ...atEnd) {
 
 // Weapon animation: angle (rotation around z) at rest, when winding up,
 // and at the end of the strike. For arms: 0 = hanging down, π/2 = straight forward.
-function pose(w, rest, windup, strike) {
-  w.userData.pose = { rest, windup, strike };
+// `onlyFor` limits it to 'melee' or 'projectile' moves (it stays at rest otherwise).
+function pose(w, rest, windup, strike, onlyFor = null) {
+  w.userData.pose = { rest, windup, strike, onlyFor };
   w.rotation.z = rest;
   return w;
 }
@@ -232,6 +234,56 @@ const BUILDERS = {
       frontArm,
     );
     return { root, weapons: [frontArm, backArm], legs, arms: [] };
+  },
+
+  ghost() {
+    const BODY = 0xdffcff, ROBE = 0xa8e6f0, GLOW = 0x9ff3ff, DARK = 0x0d2a33;
+    // See-through glowing parts, no black outline
+    const spirit = (geo, color, o = {}) => {
+      const m = part(geo, color, o);
+      m.material.transparent = true;
+      m.material.opacity = o.opacity ?? 0.72;
+      m.material.depthWrite = false;
+      m.material.emissive.setHex(0x2a7080);
+      m.userData.noOutline = true;
+      return m;
+    };
+    const kickLeg = pose(pivot(0, 0.95, 0.12,
+      spirit(G.cap(0.1, 0.55), BODY, { y: -0.38 }),
+      spirit(G.box(0.26, 0.09, 0.15), BODY, { x: 0.06, y: -0.8 }),
+    ), 0.15, -0.6, 1.7, 'melee');
+    const backLeg = pivot(0, 0.95, -0.12, spirit(G.cone(0.1, 0.7, 8), BODY, { y: -0.35, rx: Math.PI, opacity: 0.4 }));
+    const arm = (z, phase) => {
+      const a = pose(limb(0, 1.52, z, 0.08, 0.4, BODY, phase,
+        spirit(G.ball(0.09), BODY), spirit(G.ball(0.07), GLOW, { glow: true, flicker: true, opacity: 0.9 })), 0.15, 0.4, 1.5, 'projectile');
+      a.traverse((o) => {
+        if (!o.isMesh || o.material.transparent) return;
+        Object.assign(o.material, { transparent: true, opacity: 0.72, depthWrite: false });
+        o.material.emissive.setHex(0x2a7080);
+        o.userData.noOutline = true;
+      });
+      return a;
+    };
+    const frontArm = arm(0.32, 0);
+    const backArm = arm(-0.32, Math.PI);
+    const wisps = [0, 1, 2, 3].map((i) =>
+      spirit(G.ball(0.13 - i * 0.025), GLOW, { x: -0.25 - i * 0.18, y: 0.35 + i * 0.07, z: (i % 2 ? 0.1 : -0.1), opacity: 0.45 - i * 0.08, flicker: true }));
+    const root = group(
+      backLeg,
+      kickLeg,
+      spirit(G.cone(0.42, 0.95, 12), ROBE, { y: 0.85, opacity: 0.55 }),
+      [-0.3, -0.1, 0.1, 0.3].map((x, i) => spirit(G.cone(0.08, 0.3, 5), ROBE, { x, y: 0.28, z: i % 2 ? 0.25 : -0.25, rx: Math.PI, opacity: 0.45 })),
+      spirit(G.cap(0.24, 0.35), BODY, { y: 1.32 }),
+      spirit(G.ball(0.22), BODY, { y: 1.8 }),
+      spirit(G.dome(0.27), ROBE, { y: 1.8, x: -0.04, s: [1, 1.15, 1], opacity: 0.6 }),
+      part(G.ball(0.05), GLOW, { x: 0.19, y: 1.83, z: 0.08, glow: true, flicker: true }),
+      part(G.ball(0.05), GLOW, { x: 0.19, y: 1.83, z: -0.08, glow: true, flicker: true }),
+      part(G.ball(0.05), DARK, { x: 0.2, y: 1.7, s: [0.6, 1.2, 1.2] }),
+      wisps,
+      backArm,
+      frontArm,
+    );
+    return { root, weapons: [kickLeg, frontArm, backArm], legs: [], arms: [], floats: true };
   },
 
   // --- Enemies -----------------------------------------------------------------

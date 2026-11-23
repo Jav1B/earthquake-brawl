@@ -3,7 +3,8 @@ import * as THREE from 'three';
 // Fire spit, sleep arrows, missiles, trays... anything that flies.
 const BOOMERANG_TURN_TIME = 0.75; // seconds before a boomerang flies back
 export class Projectile {
-  constructor(owner, move, target, scene) {
+  // `dir` = flying direction on the ground ({ x, z }); default: straight ahead
+  constructor(owner, move, target, scene, dir = { x: owner.facing, z: 0 }) {
     const p = move.projectile;
     this.owner = owner;
     this.team = owner.team;
@@ -17,15 +18,15 @@ export class Projectile {
     this.age = 0;
     this.hitCooldown = 0; // a boomerang can hit again on the way back
 
-    this.pos = owner.pos.clone().add(new THREE.Vector3(owner.facing * (owner.def.size.w / 2 + 0.2), 0.8, 0));
-    this.vel = new THREE.Vector3(owner.facing * p.speed, 0, 0);
+    this.pos = owner.pos.clone().add(new THREE.Vector3(dir.x * (owner.def.size.w / 2 + 0.2), 0.8, dir.z * 0.4));
+    this.vel = new THREE.Vector3(dir.x * p.speed, 0, dir.z * p.speed);
     // Aimed projectiles steer toward the target's lane.
-    if (p.aimZ && target) {
+    if (p.aimZ && target && dir.z === 0) {
       const travelTime = Math.max(0.1, Math.abs(target.pos.x - this.pos.x) / p.speed);
       this.vel.z = THREE.MathUtils.clamp((target.pos.z - this.pos.z) / travelTime, -4, 4);
     }
 
-    const glow = p.shape === 'tray' ? 0.1 : p.shape === 'energy' ? 1 : 0.6;
+    const glow = p.shape === 'tray' ? 0.1 : p.shape === 'energy' || p.shape === 'ghost' ? 1 : 0.6;
     const material = new THREE.MeshStandardMaterial({ color: p.color, emissive: p.color, emissiveIntensity: glow, metalness: p.shape === 'tray' ? 0.6 : 0 });
     const geometry =
       p.shape === 'arrow' ? new THREE.BoxGeometry(0.7, 0.05, 0.05)
@@ -51,6 +52,7 @@ export class Projectile {
     if (shape === 'ice') this.mesh.rotation.x += dt * 10; // tumbling ice chunk
     if (shape === 'tray') this.mesh.rotation.set(0.25, this.age * 25, 0); // spinning tray
     if (shape === 'energy') this.mesh.scale.setScalar(0.85 + Math.random() * 0.3); // crackling energy
+    if (shape === 'ghost') this.mesh.scale.setScalar(1 + Math.sin(this.age * 25) * 0.2); // pulsing ghost ball
   }
 
   // Boomerangs fly out, then turn around and home back to the thrower.

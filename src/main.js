@@ -108,24 +108,30 @@ function renderLevelPreviews() {
 }
 
 // A row of selectable cards, controlled with arrows, number keys or the mouse.
+// Items are HTML strings, or { html, secret: true } for hidden cards: they go
+// at the end and only appear when you press → on the last visible card.
 function makeMenu(containerId, items, onPick) {
+  items = items.map((item) => (typeof item === 'string' ? { html: item } : item));
+  const lastVisible = items.findLastIndex((item) => !item.secret);
   const menu = { selected: 0, cards: [] };
   menu.select = (i) => {
     const next = (i + items.length) % items.length;
-    if (next !== menu.selected) sound.play('select');
+    if (next !== menu.selected) sound.play(items[next].secret ? 'secret' : 'select');
     menu.selected = next;
     menu.cards.forEach((card, j) => card.classList.toggle('selected', j === next));
   };
   menu.update = () => {
-    if (input.pressed('left')) menu.select(menu.selected - 1);
+    // ← from the first card wraps to the last visible one (never to a secret)
+    if (input.pressed('left')) menu.select(menu.selected === 0 ? lastVisible : menu.selected - 1);
+    // → past the last visible card reveals the secret ones
     if (input.pressed('right')) menu.select(menu.selected + 1);
-    items.forEach((_, i) => input.pressedCode(`Digit${i + 1}`) && menu.select(i));
+    items.forEach((item, i) => !item.secret && input.pressedCode(`Digit${i + 1}`) && menu.select(i));
     if (input.pressed('start')) onPick(menu.selected);
   };
   $(containerId).innerHTML = '';
-  items.forEach((html, i) => {
+  items.forEach(({ html, secret }, i) => {
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = secret ? 'card secret' : 'card';
     card.innerHTML = html;
     card.onmouseenter = () => menu.select(i);
     card.onclick = () => onPick(i);
@@ -179,11 +185,12 @@ const heroMenu = makeMenu(
   'cards',
   heroIds.map((id, i) => {
     const c = CHARACTERS[id];
-    return `
+    const html = `
       <div class="portrait" style="--hero:${hex(c.color)}"><img src="${portraits[id]}" alt="${c.name}"></div>
-      <h2>${i + 1}. ${c.name}</h2>
+      <h2>${c.hidden ? "👻" : i + 1 + "."} ${c.name}</h2>
       <div class="title">${c.title}</div>
       <div class="moves">J : ${MOVES[c.moves.attack].name}<br>K : ${MOVES[c.moves.special].name}</div>`;
+    return { html, secret: !!c.hidden };
   }),
   (i) => {
     heroId = heroIds[i];

@@ -34,6 +34,8 @@
       .screen p { margin: 0 0 28px; color: #e8c9a0; text-align: center; }
       .cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
       .card { width: 170px; padding: 18px 14px; border: 3px solid #555; border-radius: 12px; background: #1d1510; cursor: pointer; text-align: center; transition: transform 0.1s; }
+      .card.secret:not(.selected) { display: none; } /* secret heroes only show when selected */
+      .card.secret.selected { border-color: #9ff3ff; box-shadow: 0 0 30px #9ff3ffaa; }
       .card.selected { border-color: #ff8800; transform: scale(1.07); box-shadow: 0 0 24px #f60a; }
       .card .portrait { width: 130px; height: 130px; margin: 0 auto 10px; border-radius: 50%; border: 3px solid #fff3;
         background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--hero) 70%, #fff), color-mix(in srgb, var(--hero) 45%, #000)); overflow: hidden; }

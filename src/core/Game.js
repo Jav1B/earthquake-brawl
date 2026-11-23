@@ -15,6 +15,7 @@ export class Game {
     this.sound = sound;
     this.projectiles = [];
     this.sparks = [];
+    this.fogs = [];
     this.cameraX = 0;
     this.result = null; // null while playing, then 'win' or 'lose'
     this.player = new Player(CHARACTERS[heroId], this);
@@ -29,7 +30,47 @@ export class Game {
 
   spawnProjectile(owner, move) {
     const target = owner.team === 'player' ? null : this.player;
-    this.projectiles.push(new Projectile(owner, move, target, this.scene));
+    // Some moves shoot in several directions at once (x = forward)
+    const dirs = move.projectile.directions ?? [[1, 0]];
+    for (const [x, z] of dirs) {
+      this.projectiles.push(new Projectile(owner, move, target, this.scene, { x: x * owner.facing, z }));
+    }
+  }
+
+  // A fog cloud (Phantominus' kick): enemies inside walk slower.
+  spawnFog(owner, { duration, radius }) {
+    const cloud = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0, depthWrite: false });
+    for (let i = 0; i < 9; i++) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(THREE.MathUtils.randFloat(0.45, 0.75), 10, 8), mat);
+      const angle = (i / 9) * Math.PI * 2;
+      puff.position.set(Math.cos(angle) * radius * 0.6, THREE.MathUtils.randFloat(0.2, 0.9), Math.sin(angle) * radius * 0.35);
+      puff.scale.y = 0.6;
+      cloud.add(puff);
+    }
+    cloud.position.set(owner.pos.x + owner.facing * 1.1, 0, owner.pos.z);
+    this.scene.add(cloud);
+    this.fogs.push({ x: cloud.position.x, z: cloud.position.z, radius, life: duration, duration, team: owner.team, cloud, mat });
+  }
+
+  updateFogs(dt) {
+    for (const f of this.fogs) {
+      f.life -= dt;
+      // Fade in quickly, fade out at the end
+      const age = f.duration - f.life;
+      f.mat.opacity = 0.45 * Math.min(1, age * 6, f.life * 2);
+      f.cloud.rotation.y += dt * 0.6;
+      f.cloud.scale.setScalar(1 + age * 0.15);
+    }
+    this.fogs = this.fogs.filter((f) => (f.life <= 0 ? (this.scene.remove(f.cloud), false) : true));
+    // Who is inside a fog cloud made by the other team?
+    for (const fighter of [this.player, ...this.enemies]) {
+      fighter.inFog = this.fogs.some((f) => {
+        const dx = (fighter.pos.x - f.x) / f.radius;
+        const dz = (fighter.pos.z - f.z) / (f.radius * 0.7);
+        return f.team !== fighter.team && dx * dx + dz * dz < 1;
+      });
+    }
   }
 
   sfx(name) {
@@ -59,6 +100,11 @@ export class Game {
     if (!atk) return;
     for (const t of targets) {
       if (t.hittable && attacker.canHit(t, atk.move)) {
+        // Ghosts: punches and swords pass right through
+        if (t.def.meleeImmune) {
+          t.phaseFlash = 0.3;
+          continue;
+        }
         this.hitFeedback(t, t.takeHit(atk.move, attacker.pos.x));
         atk.hasHit = true;
       }
@@ -69,6 +115,8 @@ export class Game {
     const p = this.player;
     if (p.alive && !this.result) p.handleInput(input, dt);
     this.level.update(p, this.cameraX, dt);
+
+    this.updateFogs(dt);
 
     // Who is standing on spilled soy sauce?
     for (const f of [p, ...this.enemies]) {

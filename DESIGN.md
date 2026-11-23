@@ -21,6 +21,8 @@ Playable characters:
 -Rinoserase. Rhino that spits fire.
 -Alima. Human, regular size. He has a big hammer. He has a side bow from which he can launch sleep arrows.
 -Lutar. Gnome with double axes.
+-Phantominus (secret hero). A ghost with human form. Melee attacks pass through him: only ranged attacks can hurt him.
+ _(Hidden on the hero select screen: stand on the last hero (Lutar) and press → to find him.)_
 
 ## Moves
 
@@ -29,6 +31,7 @@ _First version made up by Claude. Change anything!_ J = attack, K = special.
 - Rinoserase: Horn Charge (J, dashes forward), Fire Spit (K, fireball)
 - Alima: Hammer Smash (J, big hit), Sleep Arrow (K, enemy falls asleep)
 - Lutar: Axe Chop (J, very fast), Axe Spin (K, hits both sides)
+- Phantominus: Coup fantôme (J, a phantom kick that leaves fog for 2 seconds; enemies walking through the fog are slower), Croix spectrale (K, a + shaped attack: ghost balls fly in 4 directions, forward, back, up and down the screen)
 
 ## Levels
 

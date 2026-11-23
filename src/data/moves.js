@@ -13,7 +13,10 @@
 //   lunge      – dash forward this far during the attack
 //   bothSides  – hits in front AND behind (spin attacks)
 //   projectile – shoots something instead of hitting up close
-//                (boomerang: true = comes back to the thrower)
+//                (boomerang: true = comes back to the thrower;
+//                 directions: [[x, z], ...] = several at once, x = forward)
+//   fog        – { duration, radius }: leaves a fog cloud where it lands;
+//                enemies walking through it are slowed down
 //   sound      – sound effect when the move starts (default: 'swing').
 //                See src/core/Sound.js for the list.
 export const MOVES = {
@@ -34,6 +37,13 @@ export const MOVES = {
   // --- Lutar ---
   axeChop: { name: 'Coup de hache', damage: 6, startup: 0.03, active: 0.08, recovery: 0.08, range: 1.6, knockback: 0.2 },
   axeSpin: { name: 'Tourbillon de haches', damage: 9, startup: 0.1, active: 0.35, recovery: 0.25, range: 1.9, knockback: 1.0, bothSides: true, sound: 'spin' },
+
+  // --- Phantominus (secret hero) ---
+  phantomKick: { name: 'Coup fantôme', damage: 7, startup: 0.1, active: 0.12, recovery: 0.2, range: 1.5, knockback: 0.8, sound: 'ghost',
+                 fog: { duration: 2, radius: 1.5 } },
+  ghostCross:  { name: 'Croix spectrale', damage: 6, startup: 0.2, active: 0.05, recovery: 0.35, sound: 'ghost',
+                 projectile: { shape: 'ghost', speed: 9, size: 0.32, color: 0x9ff3ff, life: 0.8,
+                               directions: [[1, 0], [-1, 0], [0, 1], [0, -1]] } },
 
   // --- Enemies: level 1 ---
   claw:       { name: 'Griffe', damage: 5, startup: 0.25, active: 0.1, recovery: 0.3, range: 1.0, knockback: 0.3 },

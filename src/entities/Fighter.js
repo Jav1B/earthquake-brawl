@@ -8,6 +8,7 @@ const BURN_TIME = 3;
 const FREEZE_TIME = 2.5;
 const FREEZE_SLOWDOWN = 0.45; // frozen fighters move at 45% speed
 const SOY_FRICTION = 0.5; // on soy sauce you keep 50% of your sliding speed per second
+const FOG_SLOWDOWN = 0.4; // enemies in Phantominus' fog walk at 40% speed
 export const STUN_TIME = 1.5; // enemies that slide across soy fall down for this long
 export const LANE_MIN_Z = -2.5; // how far "into" the screen fighters can walk
 export const LANE_MAX_Z = 2.5;
@@ -35,10 +36,12 @@ export class Fighter {
     this.onSoy = false; // standing on spilled soy sauce (set by Game every frame)
     this.slideVel = new THREE.Vector2(); // x/z sliding speed on soy
     this.stunTimer = 0;
+    this.inFog = false; // inside an enemy's fog cloud (set by Game every frame)
     this.stillTime = 0; // seconds the hero has been standing still (set by Game)
     this.bowTimer = 0;
     this.bowCooldown = 0;
     this.pulse = 0; // short 'gulp' grow effect
+    this.phaseFlash = 0; // a melee attack just passed through a ghost
     this.deadTimer = 0;
     this.animTime = 0;
     this.shieldUp = !!def.shield;
@@ -50,6 +53,7 @@ export class Fighter {
     this.weapons = model.weapons;
     this.legs = model.legs ?? [];
     this.arms = model.arms ?? [];
+    this.floats = !!model.floats;
     this.shieldMesh = model.shield ?? null;
     this.group = new THREE.Group();
     this.group.add(this.visual);
@@ -64,6 +68,7 @@ export class Fighter {
       if (o.userData.noFlash) return;
       o.material = o.material.clone();
       o.material.userData.baseEmissive = o.material.emissive.getHex();
+      o.material.userData.baseOpacity = o.material.opacity;
       this.materials.push(o.material);
     });
     world.scene.add(this.group);
@@ -76,7 +81,7 @@ export class Fighter {
 
   move(dx, dz, dt) {
     if (this.busy) return;
-    const speed = this.def.speed * (this.freezeTimer > 0 ? FREEZE_SLOWDOWN : 1);
+    const speed = this.def.speed * (this.freezeTimer > 0 ? FREEZE_SLOWDOWN : 1) * (this.inFog ? FOG_SLOWDOWN : 1);
     if (this.onSoy) {
       // Slippery! Pressing a direction only pushes you; you keep sliding.
       this.slideVel.x += dx * speed * 3 * dt;
@@ -180,6 +185,7 @@ export class Fighter {
       this.slideVel.set(0, 0);
     }
     this.pulse = Math.max(0, this.pulse - dt);
+    this.phaseFlash = Math.max(0, this.phaseFlash - dt);
 
     // Burning: damage over time
     if (this.burnTimer > 0 && this.alive) {
@@ -224,6 +230,10 @@ export class Fighter {
       a.fired = true;
       this.world.spawnProjectile(this, m);
     }
+    if (m.fog && !a.fogged && a.t >= m.startup) {
+      a.fogged = true;
+      this.world.spawnFog(this, m.fog);
+    }
     if (m.lunge && a.t >= m.startup && a.t < m.startup + m.active) {
       this.pos.x += this.facing * (m.lunge / m.active) * dt;
     }
@@ -235,9 +245,11 @@ export class Fighter {
 
   // Weapon angle during an attack: rest → wind up → strike → back to rest.
   weaponAngle(weapon) {
-    const { rest, windup, strike } = weapon.userData.pose ?? { rest: 0, windup: 0.8, strike: -1.6 };
+    const { rest, windup, strike, onlyFor } = weapon.userData.pose ?? { rest: 0, windup: 0.8, strike: -1.6 };
     const a = this.attack;
     if (!a) return rest;
+    // Some weapons only move for one kind of attack (a kicking leg, casting arms)
+    if (onlyFor && onlyFor !== (a.move.projectile ? 'projectile' : 'melee')) return rest;
     const { startup, active, recovery } = a.move;
     const lerp = THREE.MathUtils.lerp;
     if (a.t < startup) return lerp(rest, windup, a.t / startup);
@@ -271,7 +283,9 @@ export class Fighter {
     this.visual.rotation.y = spinning ? ((a.t - a.move.startup) / a.move.active) * Math.PI * 2 : 0;
 
     // Little bounce while walking
-    this.visual.position.y = walking ? Math.abs(Math.sin(this.walkPhase)) * 0.06 : 0;
+    this.visual.position.y = this.floats
+      ? 0.18 + Math.sin(this.animTime * 3) * 0.08 // ghosts hover
+      : walking ? Math.abs(Math.sin(this.walkPhase)) * 0.06 : 0;
 
     // Fall over when asleep or dead, then sink into the ground
     const tilt =
@@ -285,7 +299,10 @@ export class Fighter {
 
     const flashing = this.state === 'hurt' && Math.floor(this.hurtTimer * 20) % 2 === 0;
     const burning = this.burnTimer > 0 && Math.floor(this.animTime * 10) % 2 === 0;
+    // Something passed through a ghost: it fades out for a moment
+    const fade = this.phaseFlash > 0 ? 0.35 : 1;
     for (const m of this.materials) {
+      if (m.transparent) m.opacity = m.userData.baseOpacity * fade;
       m.emissive.setHex(
         flashing ? 0xffffff
           : burning ? 0xff4400

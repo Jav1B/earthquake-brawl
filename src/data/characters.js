@@ -2,6 +2,9 @@
 // `name` and `title` are shown to the player, so they must be in French.
 //   moves.attack  – J key
 //   moves.special – K key
+//   meleeImmune   – close-up attacks pass right through (only projectiles hurt)
+//   hidden        – secret hero: not shown on the select screen until you
+//                   press → while standing on the last hero
 export const CHARACTERS = {
   samacaille: {
     name: 'Samacaille',
@@ -46,5 +49,18 @@ export const CHARACTERS = {
     jumpPower: 8,
     size: { w: 0.7, h: 1.1 },
     moves: { attack: 'axeChop', special: 'axeSpin' },
+  },
+  phantominus: {
+    name: 'Phantominus',
+    title: 'Fantôme à forme humaine',
+    hidden: true,
+    meleeImmune: true, // he's a ghost!
+    model: 'ghost',
+    color: 0x7fd8e8,
+    maxHp: 95,
+    speed: 4.4,
+    jumpPower: 8,
+    size: { w: 0.8, h: 1.9 },
+    moves: { attack: 'phantomKick', special: 'ghostCross' },
   },
 };

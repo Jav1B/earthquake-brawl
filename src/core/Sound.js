@@ -143,6 +143,15 @@ export class Sound {
         this.tone({ freq: 200, to: 700, dur: 0.4, type: 'sawtooth', vol: 0.08 });
         this.noise({ dur: 0.5, vol: 0.2, filter: 'bandpass', freq: 600, to: 300 });
         break;
+      case 'ghost':
+        this.tone({ freq: 700, to: 350, dur: 0.35, type: 'sine', vol: 0.12 });
+        this.tone({ freq: 710, to: 355, dur: 0.35, type: 'sine', vol: 0.12 });
+        this.noise({ dur: 0.3, vol: 0.12, filter: 'highpass', freq: 3000, to: 1500 });
+        break;
+      case 'secret':
+        [62, 65, 69, 73, 74].forEach((n, i) => this.tone({ freq: midiToHz(n + 12), dur: 0.25, type: 'sine', vol: 0.15, at: t + i * 0.09 }));
+        this.tone({ freq: 400, to: 1600, dur: 0.6, type: 'triangle', vol: 0.05 });
+        break;
       case 'bow':
         [72, 67, 64].forEach((n, i) => this.tone({ freq: midiToHz(n), dur: 0.4, type: 'sine', vol: 0.15, at: t + i * 0.18 }));
         break;
